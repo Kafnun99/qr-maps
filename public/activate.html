@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aktivasi Kartu Merchant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 420px; position: relative; }
+    h2 { text-align: center; margin-bottom: 10px; color: #333; }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+    .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge-inactive { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+    .badge-container { text-align: center; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 6px; font-weight: bold; color: #555; font-size: 14px; }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    input[readonly] { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+    button, .btn-link { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; text-align: center; text-decoration: none; }
+    button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+    .btn-primary { background-color: #007bff; }
+    .btn-primary:hover:not(:disabled) { background-color: #0056b3; }
+    .btn-danger { background-color: #dc3545; }
+    .btn-danger:hover:not(:disabled) { background-color: #a71d2a; }
+    .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 15px; }
+    .btn-success:hover { background-color: #218838; }
+    #message { margin-top: 15px; text-align: center; font-size: 14px; font-weight: bold; }
+    .info-note { font-size: 12px; color: #6c757d; margin-top: 4px; display: block; }
+    .pac-container { border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #ddd; z-index: 10000; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Form Aktivasi Kartu</h2>
+    <div class="badge-container">
+      <span id="statusBadge" class="badge badge-inactive">Memeriksa Status...</span>
+    </div>
+
+    <form id="activationForm">
+      <input type="hidden" id="card_id" name="card_id">
+
+      <div class="form-group">
+        <label for="no_merchant">No merchant</label>
+        <input type="text" id="no_merchant" name="no_merchant" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
+        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="pin_baru">PIN Baru <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="text" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="nama_toko">Nama Toko / Tempat Usaha <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" name="nama_toko" placeholder="Ketik nama toko..." required autocomplete="off">
+        <small id="tokoNote" class="info-note"></small>
+      </div>
+
+      <div class="form-group">
+        <label for="no_hp">No HP <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="tel" id="no_hp" name="no_hp" placeholder="Contoh: 08123456789">
+      </div>
+
+      <div class="btn-group">
+        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Aktivasi / Simpan</button>
+        <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
+      </div>
+
+      <!-- Tombol baru untuk langsung ke Google Review -->
+      <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
+        ⭐ Buka Halaman Google Review
+      </a>
+    </form>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyyaAUtZ8lsubvbUdA76MAtivQQrSBEXk26ipEtnk7dXVFFpv__OWyPzpWCHjYR60eC/exec';
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
+
+    let autocomplete;
+    let selectedGmapsUrl = '';
+    let currentCardStatus = 'inactive';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardId = urlParams.get('id') || 'A000001';
+    const noMerchant = parseInt(cardId.replace(/[^0-9]/g, ''), 10) || 1;
+
+    document.getElementById('card_id').value = cardId;
+    document.getElementById('no_merchant').value = noMerchant;
+
+    (function loadGoogleMapsAPI() {
+      if (GOOGLE_MAPS_API_KEY) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initAutocomplete`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+    })();
+
+    window.initAutocomplete = function() {
+      const input = document.getElementById('nama_toko');
+      autocomplete = new google.maps.places.Autocomplete(input, { types: ['establishment', 'geocode'] });
+
+      input.addEventListener('input', () => { selectedGmapsUrl = ''; });
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.place_id) {
+          selectedGmapsUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+        } else if (place.url) {
+          selectedGmapsUrl = place.url;
+        }
+      });
+    };
+
+    async function loadCardData() {
+      const msgDiv = document.getElementById('message');
+      const badge = document.getElementById('statusBadge');
+      const btnReviewLink = document.getElementById('btnReviewLink');
+
+      msgDiv.style.color = '#555';
+      msgDiv.innerText = 'Memuat data kartu...';
+
+      try {
+        const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          msgDiv.innerText = '';
+          currentCardStatus = data.card_status;
+
+          if (currentCardStatus === 'active') {
+            badge.className = 'badge badge-active';
+            badge.innerText = 'TERDAFTAR / AKTIF';
+            
+            document.getElementById('nama_toko').value = data.nama_toko;
+            document.getElementById('nama_toko').readOnly = true;
+            document.getElementById('no_hp').value = data.no_hp;
+            document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
+            
+            document.getElementById('btnActivate').style.display = 'none';
+            document.getElementById('btnDeactivate').style.display = 'block';
+
+            // Tampilkan tombol Google Review jika URL valid
+            if (data.nama_toko && data.nama_toko.startsWith('http')) {
+              btnReviewLink.href = data.nama_toko;
+              btnReviewLink.style.display = 'block';
+            } else {
+              btnReviewLink.style.display = 'none';
+            }
+          } else {
+            badge.className = 'badge badge-inactive';
+            badge.innerText = 'BELUM AKTIF / KOSONG';
+            
+            document.getElementById('nama_toko').value = '';
+            document.getElementById('nama_toko').readOnly = false;
+            document.getElementById('no_hp').value = '';
+            document.getElementById('tokoNote').innerText = '';
+
+            document.getElementById('btnActivate').style.display = 'block';
+            document.getElementById('btnDeactivate').style.display = 'none';
+            btnReviewLink.style.display = 'none';
+          }
+        } else {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = data.message;
+        }
+      } catch (err) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Gagal memuat status kartu.';
+      }
+    }
+
+    loadCardData();
+
+    async function submitForm(actionType) {
+      const pin = document.getElementById('pin').value.trim();
+      const pinBaru = document.getElementById('pin_baru').value.trim();
+      const namaTokoInput = document.getElementById('nama_toko').value.trim();
+      const noHp = document.getElementById('no_hp').value.trim();
+      const msgDiv = document.getElementById('message');
+      const btnActivate = document.getElementById('btnActivate');
+      const btnDeactivate = document.getElementById('btnDeactivate');
+
+      if (!pin) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'PIN saat ini wajib diisi!';
+        return;
+      }
+
+      if (actionType === 'activate' && !namaTokoInput) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Nama Toko wajib diisi!';
+        return;
+      }
+
+      btnActivate.disabled = true;
+      btnDeactivate.disabled = true;
+      msgDiv.style.color = '#007bff';
+      msgDiv.innerText = 'Memproses ke sistem...';
+
+      const targetGmapsLink = selectedGmapsUrl || namaTokoInput;
+
+      const formData = new URLSearchParams();
+      formData.append('card_id', cardId);
+      formData.append('pin', pin);
+      formData.append('pin_baru', pinBaru);
+      formData.append('nama_toko', targetGmapsLink);
+      formData.append('no_hp', noHp);
+      formData.append('action', actionType);
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          msgDiv.style.color = 'green';
+          msgDiv.innerText = result.message;
+          document.getElementById('pin').value = '';
+          document.getElementById('pin_baru').value = '';
+          
+          setTimeout(() => {
+            loadCardData();
+            btnActivate.disabled = false;
+            btnDeactivate.disabled = false;
+          }, 1000);
+        } else {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = result.message;
+          btnActivate.disabled = false;
+          btnDeactivate.disabled = false;
+        }
+      } catch (err) {
+        console.error(err);
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Terjadi kesalahan sistem.';
+        btnActivate.disabled = false;
+        btnDeactivate.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
