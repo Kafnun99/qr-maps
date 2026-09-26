@@ -7,23 +7,22 @@ const SPREADSHEET_ID = '1zP9ilzwuenTdbavzbFFxbDLjTrkbOjqWJDhijweoWAA';
 const GOOGLE_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 const SHEET_NAME = 'cards_export';
 
-// Akses file statis (seperti activate.html) dari root folder proyek
+// Akses file statis dari root folder dan public
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Route Halaman Utama
+// Route Halaman Utama (Membuat domain utama langsung buka activate.html)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'activate.html'));
 });
 
-// Route Explicit untuk Halaman Aktivasi
+// Route Explicit untuk /activate.html
 app.get('/activate.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'activate.html'));
 });
 
 // Route Short Link Scan QR (/c/:id)
 app.get('/c/:id', async (req, res) => {
-  // Matikan caching Vercel CDN & Browser
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -40,7 +39,6 @@ app.get('/c/:id', async (req, res) => {
     }
 
     const rowNumber = cardIndex + 1;
-
     const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/'${SHEET_NAME}'!A${rowNumber}:D${rowNumber}?key=${GOOGLE_API_KEY}`;
 
     const apiRes = await fetch(apiUrl, { cache: 'no-store' });
