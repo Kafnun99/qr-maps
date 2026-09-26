@@ -8,7 +8,9 @@ const GOOGLE_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 const SHEET_NAME = 'cards_export';
 
 app.use(express.static(path.join(__dirname, 'public')));
-
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'activate.html'));
+});
 app.get('/c/:id', async (req, res) => {
   // Matikan caching Vercel CDN & Browser
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
