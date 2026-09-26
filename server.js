@@ -7,10 +7,21 @@ const SPREADSHEET_ID = '1zP9ilzwuenTdbavzbFFxbDLjTrkbOjqWJDhijweoWAA';
 const GOOGLE_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 const SHEET_NAME = 'cards_export';
 
+// Akses file statis (seperti activate.html) dari root folder proyek
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Route Halaman Utama
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'activate.html'));
 });
+
+// Route Explicit untuk Halaman Aktivasi
+app.get('/activate.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'activate.html'));
+});
+
+// Route Short Link Scan QR (/c/:id)
 app.get('/c/:id', async (req, res) => {
   // Matikan caching Vercel CDN & Browser
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -30,7 +41,6 @@ app.get('/c/:id', async (req, res) => {
 
     const rowNumber = cardIndex + 1;
 
-    // Hapus parameter &_t agar Google Sheets API tidak error 400
     const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/'${SHEET_NAME}'!A${rowNumber}:D${rowNumber}?key=${GOOGLE_API_KEY}`;
 
     const apiRes = await fetch(apiUrl, { cache: 'no-store' });
@@ -54,12 +64,15 @@ app.get('/c/:id', async (req, res) => {
       });
     }
 
+    // Jika Status Kartu SUDAH ACTIVE -> Lempar ke Google Maps
     if (status === 'active' && gmapsUrl !== '') {
       if (!gmapsUrl.startsWith('http://') && !gmapsUrl.startsWith('https://')) {
         gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gmapsUrl)}`;
       }
       return res.redirect(302, gmapsUrl);
-    } else {
+    } 
+    // Jika Status BELUM ACTIVE -> Lempar ke Halaman Aktivasi
+    else {
       return res.redirect(302, `/activate.html?id=${cardId}`);
     }
   } catch (err) {
