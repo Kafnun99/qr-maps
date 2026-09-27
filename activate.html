@@ -3,74 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pengelolaan Kartu Merchant</title>
+  <title>Pengelolaan Kartu</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 420px; }
-    h2 { text-align: center; margin-bottom: 10px; color: #333; }
-    .badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h2 { text-align: center; margin-bottom: 10px; color: #333; font-size: 20px; }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; }
     .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .badge-inactive { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .badge-container { text-align: center; margin-bottom: 20px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 6px; font-weight: bold; color: #555; font-size: 14px; }
-    input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-    input[readonly] { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
-    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-    button, .btn-link { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; text-align: center; text-decoration: none; }
+    .badge-container { text-align: center; margin-bottom: 15px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; color: #555; font-size: 13px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    input[readonly] { background-color: #e9ecef; color: #495057; }
+    .btn-group { display: flex; gap: 10px; margin-top: 18px; }
+    button, .btn-link { flex: 1; padding: 11px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; text-align: center; text-decoration: none; }
     button:disabled { background-color: #ccc !important; cursor: not-allowed; }
     .btn-primary { background-color: #007bff; }
     .btn-danger { background-color: #dc3545; }
-    .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 15px; }
-    #message { margin-top: 15px; text-align: center; font-size: 14px; font-weight: bold; }
-    .info-note { font-size: 12px; color: #6c757d; margin-top: 4px; display: block; }
+    .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 12px; }
+    #message { margin-top: 12px; text-align: center; font-size: 13px; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <h2 id="formTitle">Form Aktivasi Kartu</h2>
+    <h2 id="formTitle">Form Pengelolaan Kartu</h2>
     <div class="badge-container">
-      <span id="statusBadge" class="badge badge-inactive">Memeriksa Status...</span>
+      <span id="statusBadge" class="badge badge-inactive">Memuat...</span>
     </div>
 
     <form id="activationForm">
       <input type="hidden" id="card_id" name="card_id">
 
       <div class="form-group">
-        <label for="no_merchant">Card ID</label>
-        <input type="text" id="no_merchant" name="no_merchant" readonly>
+        <label>Card ID</label>
+        <input type="text" id="no_merchant" readonly>
       </div>
 
       <div class="form-group">
-        <label for="pin">PIN <small style="color: red;">*</small></label>
-        <input type="password" id="pin" name="pin" placeholder="Masukkan PIN" required autocomplete="off">
+        <label>PIN <small style="color: red;">*</small></label>
+        <input type="password" id="pin" placeholder="Masukkan PIN" required autocomplete="off">
       </div>
 
       <div class="form-group">
-        <label for="pin_baru">PIN Baru <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
-        <input type="password" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
+        <label>PIN Baru <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="password" id="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
       </div>
 
       <div class="form-group">
-        <label for="nama_toko">Link Google Review / Maps <small style="color: red;">*</small></label>
-        <input type="text" id="nama_toko" name="nama_toko" placeholder="Tempel URL Google Maps di sini..." required autocomplete="off">
-        <small id="tokoNote" class="info-note"></small>
+        <label>Link Google Review / Maps <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" placeholder="Tempel URL Google Maps..." required autocomplete="off">
       </div>
 
       <div class="form-group">
-        <label for="no_hp">No HP <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
-        <input type="tel" id="no_hp" name="no_hp" placeholder="Contoh: 08123456789">
+        <label>No HP <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="tel" id="no_hp" placeholder="Contoh: 08123456789">
       </div>
 
       <div class="btn-group">
-        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Aktivasi</button>
+        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Simpan / Update</button>
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
       <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
-        ⭐ Buka Halaman Review
+        ⭐ Tes Buka Link
       </a>
     </form>
 
@@ -78,7 +76,7 @@
   </div>
 
   <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyyLRZArYBBCO8XffPrgj-Uc_CxFsGS6O5IRG8UNTwkEBwl9vH2IBgW5W79cIBVbvJS/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zdKhbzWRB7PS80UtLB0mAnlr0uhLll5Jy1eJNo8yyQZnId-SksTgKpC/exec';
 
     const urlParams = new URLSearchParams(window.location.search);
     const cardId = urlParams.get('id') || 'A000001';
@@ -91,8 +89,7 @@
       const badge = document.getElementById('statusBadge');
       const btnReviewLink = document.getElementById('btnReviewLink');
 
-      msgDiv.style.color = '#555';
-      msgDiv.innerText = 'Memuat data kartu...';
+      msgDiv.innerText = 'Memuat data...';
 
       try {
         const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
@@ -102,12 +99,9 @@
           msgDiv.innerText = '';
           badge.className = 'badge badge-active';
           badge.innerText = 'STATUS: AKTIF';
-          document.getElementById('formTitle').innerText = 'Update / Nonaktifkan Kartu';
           
           document.getElementById('nama_toko').value = data.nama_toko || '';
           document.getElementById('no_hp').value = data.no_hp || '';
-          document.getElementById('tokoNote').innerText = 'Kartu aktif. Masukkan PIN untuk update data atau menonaktifkan.';
-          
           document.getElementById('btnActivate').innerText = 'Update Data';
           document.getElementById('btnDeactivate').style.display = 'block';
 
@@ -119,21 +113,17 @@
           }
         } else {
           badge.className = 'badge badge-inactive';
-          badge.innerText = 'STATUS: BELUM AKTIF';
-          document.getElementById('formTitle').innerText = 'Form Aktivasi Kartu';
+          badge.innerText = 'STATUS: BELUM AKTIF / UNACTIVE';
           
-          // BERSIHKAN FORM SAAT STATUS UNACTIVE/KOSONG
+          // Kosongkan form saat status unactive
           document.getElementById('nama_toko').value = '';
           document.getElementById('no_hp').value = '';
-          document.getElementById('tokoNote').innerText = '';
-          
           document.getElementById('btnActivate').innerText = 'Aktivasi Kartu';
           document.getElementById('btnDeactivate').style.display = 'none';
           btnReviewLink.style.display = 'none';
           msgDiv.innerText = '';
         }
       } catch (err) {
-        console.error(err);
         badge.className = 'badge badge-inactive';
         badge.innerText = 'BELUM AKTIF / KOSONG';
         msgDiv.innerText = '';
@@ -166,7 +156,7 @@
       btnActivate.disabled = true;
       btnDeactivate.disabled = true;
       msgDiv.style.color = '#007bff';
-      msgDiv.innerText = 'Memproses...';
+      msgDiv.innerText = 'Menyimpan...';
 
       const payload = {
         card_id: cardId,
@@ -188,26 +178,25 @@
 
         if (resData.status === 'success') {
           msgDiv.style.color = 'green';
-          msgDiv.innerText = resData.message || 'Berhasil tersimpan!';
+          msgDiv.innerText = resData.message;
           document.getElementById('pin').value = '';
           document.getElementById('pin_baru').value = '';
           
           setTimeout(() => {
             btnActivate.disabled = false;
             btnDeactivate.disabled = false;
-            loadCardData(); // Refresh status form
-          }, 800);
+            loadCardData();
+          }, 500);
         } else {
           msgDiv.style.color = 'red';
-          msgDiv.innerText = resData.message || 'Gagal memproses data.';
+          msgDiv.innerText = resData.message || 'Gagal menyimpan.';
           btnActivate.disabled = false;
           btnDeactivate.disabled = false;
         }
 
       } catch (err) {
-        console.error(err);
         msgDiv.style.color = 'red';
-        msgDiv.innerText = 'Terjadi kesalahan sistem / koneksi.';
+        msgDiv.innerText = 'Terjadi kesalahan sistem.';
         btnActivate.disabled = false;
         btnDeactivate.disabled = false;
       }
