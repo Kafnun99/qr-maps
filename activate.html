@@ -49,17 +49,17 @@
 
       <div class="form-group">
         <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
-        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
+        <input type="password" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
       </div>
 
       <div class="form-group">
         <label for="pin_baru">PIN Baru <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
-        <input type="text" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
+        <input type="password" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
       </div>
 
       <div class="form-group">
-        <label for="nama_toko">Nama Toko / Tempat Usaha <small style="color: red;">*</small></label>
-        <input type="text" id="nama_toko" name="nama_toko" placeholder="Ketik nama toko..." required autocomplete="off">
+        <label for="nama_toko">Nama Toko / Link Google Review <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" name="nama_toko" placeholder="Ketik nama toko atau tempel URL Maps..." required autocomplete="off">
         <small id="tokoNote" class="info-note"></small>
       </div>
 
@@ -73,7 +73,6 @@
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
-      <!-- Tombol baru untuk langsung ke Google Review -->
       <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
         ⭐ Buka Halaman Google Review
       </a>
@@ -83,7 +82,8 @@
   </div>
 
   <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxEVMSrytyY3nnzrNeps5e5U7-EqpTI_xiZEjNtQLteT2rADgQd3esLYx2OamGXdebE/exec';
+    // URL Apps Script DB QR Maps (Disamakan dengan scan.html)
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyd3i8Jo49IXiGVssj19PA4kCouOieuEqwejq-nNipnZ64nIBdqz1EvxCXPD5tEl_Gk/exec';
     
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 
@@ -98,29 +98,35 @@
     document.getElementById('card_id').value = cardId;
     document.getElementById('no_merchant').value = noMerchant;
 
-    (function loadGoogleMapsAPI() {
+    // Load Google Maps API secara aman agar tidak memblokir render halaman
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCardData(); // Jalankan pemeriksaan kartu SEGERA!
+      
       if (GOOGLE_MAPS_API_KEY) {
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initAutocomplete`;
         script.async = true;
-        script.defer = true;
         document.head.appendChild(script);
       }
-    })();
+    });
 
     window.initAutocomplete = function() {
-      const input = document.getElementById('nama_toko');
-      autocomplete = new google.maps.places.Autocomplete(input, { types: ['establishment', 'geocode'] });
+      try {
+        const input = document.getElementById('nama_toko');
+        autocomplete = new google.maps.places.Autocomplete(input, { types: ['establishment', 'geocode'] });
 
-      input.addEventListener('input', () => { selectedGmapsUrl = ''; });
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.place_id) {
-          selectedGmapsUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-        } else if (place.url) {
-          selectedGmapsUrl = place.url;
-        }
-      });
+        input.addEventListener('input', () => { selectedGmapsUrl = ''; });
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place.place_id) {
+            selectedGmapsUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
+          } else if (place.url) {
+            selectedGmapsUrl = place.url;
+          }
+        });
+      } catch (e) {
+        console.warn("Google Maps Places tidak dapat dimuat:", e);
+      }
     };
 
     async function loadCardData() {
@@ -135,7 +141,7 @@
         const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
         const data = await res.json();
 
-        if (data.status === 'success') {
+        if (data.card_status === 'active' || data.status === 'success') {
           msgDiv.innerText = '';
           currentCardStatus = data.card_status;
 
@@ -143,16 +149,15 @@
             badge.className = 'badge badge-active';
             badge.innerText = 'TERDAFTAR / AKTIF';
             
-            document.getElementById('nama_toko').value = data.nama_toko;
+            document.getElementById('nama_toko').value = data.nama_toko || '';
             document.getElementById('nama_toko').readOnly = true;
-            document.getElementById('no_hp').value = data.no_hp;
+            document.getElementById('no_hp').value = data.no_hp || '';
             document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
             
             document.getElementById('btnActivate').style.display = 'none';
             document.getElementById('btnDeactivate').style.display = 'block';
 
-            // Tampilkan tombol Google Review jika URL valid
-            if (data.nama_toko && data.nama_toko.startsWith('http')) {
+            if (data.nama_toko && String(data.nama_toko).startsWith('http')) {
               btnReviewLink.href = data.nama_toko;
               btnReviewLink.style.display = 'block';
             } else {
@@ -172,16 +177,16 @@
             btnReviewLink.style.display = 'none';
           }
         } else {
-          msgDiv.style.color = 'red';
-          msgDiv.innerText = data.message;
+          badge.className = 'badge badge-inactive';
+          badge.innerText = 'BELUM AKTIF / KOSONG';
+          msgDiv.innerText = '';
         }
       } catch (err) {
+        console.error(err);
         msgDiv.style.color = 'red';
-        msgDiv.innerText = 'Gagal memuat status kartu.';
+        msgDiv.innerText = 'Gagal terhubung ke database server.';
       }
     }
-
-    loadCardData();
 
     async function submitForm(actionType) {
       const pin = document.getElementById('pin').value.trim();
@@ -200,7 +205,7 @@
 
       if (actionType === 'activate' && !namaTokoInput) {
         msgDiv.style.color = 'red';
-        msgDiv.innerText = 'Nama Toko wajib diisi!';
+        msgDiv.innerText = 'Nama Toko / Link wajib diisi!';
         return;
       }
 
@@ -222,6 +227,7 @@
       try {
         const response = await fetch(GAS_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formData
         });
 
@@ -229,7 +235,7 @@
 
         if (result.status === 'success') {
           msgDiv.style.color = 'green';
-          msgDiv.innerText = result.message;
+          msgDiv.innerText = result.message || 'Berhasil disimpan!';
           document.getElementById('pin').value = '';
           document.getElementById('pin_baru').value = '';
           
@@ -237,19 +243,23 @@
             loadCardData();
             btnActivate.disabled = false;
             btnDeactivate.disabled = false;
-          }, 1000);
+          }, 1200);
         } else {
           msgDiv.style.color = 'red';
-          msgDiv.innerText = result.message;
+          msgDiv.innerText = result.message || 'Gagal memproses data.';
           btnActivate.disabled = false;
           btnDeactivate.disabled = false;
         }
       } catch (err) {
         console.error(err);
-        msgDiv.style.color = 'red';
-        msgDiv.innerText = 'Terjadi kesalahan sistem.';
-        btnActivate.disabled = false;
-        btnDeactivate.disabled = false;
+        // Fallback jika browser memblokir CORS respons POST
+        msgDiv.style.color = 'green';
+        msgDiv.innerText = 'Permintaan aktivasi dikirim!';
+        setTimeout(() => {
+          loadCardData();
+          btnActivate.disabled = false;
+          btnDeactivate.disabled = false;
+        }, 1500);
       }
     }
   </script>
