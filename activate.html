@@ -91,7 +91,7 @@
 
       msgDiv.innerText = 'Memuat data...';
 
-      try {
+      try { 
         const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
         const data = await res.json();
 

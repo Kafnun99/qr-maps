@@ -1,88 +1,30 @@
-const express = require('express');
-const path = require('path');
-const app = express();
+// File: server.js pada project qr-maps
 
-// --- KONFIGURASI ---
-const SPREADSHEET_ID = '1zP9ilzwuenTdbavzbFFxbDLjTrkbOjqWJDhijweoWAA';
-const GOOGLE_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
-const SHEET_NAME = 'cards_export';
+const GAS_DATABASE_URL = 'URL_GOOGLE_APPS_SCRIPT_DATABASE_QR_MAPS_ANDA'; // Script yang terhubung ke sheet 'card export'
 
-// Akses file statis dari root folder dan public
-app.use(express.static(__dirname));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Route Halaman Utama (Membuat domain utama langsung buka activate.html)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'activate.html'));
-});
-
-// Route Explicit untuk /activate.html
-app.get('/activate.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'activate.html'));
-});
-
-// Route Short Link Scan QR (/c/:id)
-app.get('/c/:id', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-
+app.get('/r/:id', async (req, res) => {
   const cardId = req.params.id;
-  const isDebug = req.query.debug === 'true';
 
   try {
-    const cardIndex = parseInt(cardId.replace(/[^0-9]/g, ''), 10);
-    
-    if (isNaN(cardIndex) || cardIndex < 1) {
-      if (isDebug) return res.json({ error: 'Format Card ID tidak valid', cardId });
-      return res.redirect(302, `/activate.html?id=${cardId}`);
-    }
+    // Kueri TUNGGAL ke Database QR Maps (sheet 'card export')
+    const response = await fetch(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`);
+    const cardData = await response.json();
 
-    const rowNumber = cardIndex + 1;
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/'${SHEET_NAME}'!A${rowNumber}:D${rowNumber}?key=${GOOGLE_API_KEY}`;
-
-    const apiRes = await fetch(apiUrl, { cache: 'no-store' });
-    const data = await apiRes.json();
-
-    const row = (data.values && data.values[0]) ? data.values[0] : [];
-    
-    let gmapsUrl = (row[2] || '').trim();
-    let status = (row[3] || '').trim().toLowerCase();
-
-    if (isDebug) {
-      return res.json({
-        cardId,
-        rowNumberTarget: rowNumber,
-        googleApiHttpStatus: apiRes.status,
-        rawGoogleApiResponse: data,
-        extractedRow: row,
-        parsedGmapsUrl: gmapsUrl,
-        parsedStatus: status,
-        decision: (status === 'active' && gmapsUrl !== '') ? 'REDIRECT_KE_GMAPS' : 'REDIRECT_KE_AKTIVASI'
-      });
-    }
-
-    // Jika Status Kartu SUDAH ACTIVE -> Lempar ke Google Maps
-    if (status === 'active' && gmapsUrl !== '') {
-      if (!gmapsUrl.startsWith('http://') && !gmapsUrl.startsWith('https://')) {
-        gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gmapsUrl)}`;
-      }
-      return res.redirect(302, gmapsUrl);
+    // Skenario A: Kartu SUDAH AKTIF dan Memiliki Link Google Maps
+    if (cardData.status === 'active' && cardData.target_url && cardData.target_url.startsWith('http')) {
+      // Langsung lemparkan pengguna ke URL Google Maps
+      return res.redirect(302, cardData.target_url);
     } 
-    // Jika Status BELUM ACTIVE -> Lempar ke Halaman Aktivasi
+    
+    // Skenario B: Kartu BELUM AKTIF / Kosong
     else {
-      return res.redirect(302, `/activate.html?id=${cardId}`);
+      // Lemparkan pengguna ke halaman form aktivasi
+      return res.redirect(302, `/aktivate.html?id=${cardId}`);
     }
-  } catch (err) {
-    console.error('Error fast redirect:', err);
-    if (isDebug) return res.json({ error: err.toString() });
-    return res.redirect(302, `/activate.html?id=${cardId}`);
+
+  } catch (error) {
+    console.error("Gagal membaca database QR Maps:", error);
+    // Fallback keamanan jika database bermasalah: Arahkan ke halaman aktivasi
+    return res.redirect(302, `/aktivate.html?id=${cardId}`);
   }
 });
-
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
-}
-
-module.exports = app;
