@@ -11,7 +11,7 @@
     },
     {
       "source": "/c/:id",
-      "destination": "/server.js"
+      "destination": "/api/redirect?id=:id"
     }
   ]
 }
