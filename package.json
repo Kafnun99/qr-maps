@@ -1,20 +1,6 @@
 {
   "name": "qr_maps",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "description": "Sistem QR Code Redirect dan Aktivasi Merchant Google Maps",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "generate-cards": "node generate_cards.js",
-    "generate-qrs": "node generate_qr_images.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "qrcode": "^1.5.3"
-  }
-}
-=======
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -29,4 +15,3 @@
     "qrcode": "^1.5.4"
   }
 }
->>>>>>> f0338517c5f83b28a6fb156492b078ea33925fbd
