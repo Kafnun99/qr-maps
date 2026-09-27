@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aktivasi Kartu Merchant</title>
+  <title>Pengelolaan Kartu Merchant</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
@@ -30,7 +30,7 @@
 <body>
 
   <div class="card">
-    <h2>Form Aktivasi Kartu</h2>
+    <h2 id="formTitle">Form Aktivasi Kartu</h2>
     <div class="badge-container">
       <span id="statusBadge" class="badge badge-inactive">Memeriksa Status...</span>
     </div>
@@ -44,7 +44,7 @@
       </div>
 
       <div class="form-group">
-        <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
+        <label for="pin">PIN <small style="color: red;">*</small></label>
         <input type="password" id="pin" name="pin" placeholder="Masukkan PIN" required autocomplete="off">
       </div>
 
@@ -65,7 +65,7 @@
       </div>
 
       <div class="btn-group">
-        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Aktivasi / Simpan</button>
+        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Aktivasi</button>
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
@@ -78,7 +78,6 @@
   </div>
 
   <script>
-    // MASUKKAN URL WEB APP APPS SCRIPT ANDA DI SINI
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbx2789HLnjZHffcDRQI7X3lCRHAYYg7owmllKKnSjL9adjD_-klAJdYQ5M8uqx5-McU/exec';
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -103,10 +102,11 @@
           msgDiv.innerText = '';
           badge.className = 'badge badge-active';
           badge.innerText = 'STATUS: AKTIF';
+          document.getElementById('formTitle').innerText = 'Update / Nonaktifkan Kartu';
           
           document.getElementById('nama_toko').value = data.nama_toko || '';
           document.getElementById('no_hp').value = data.no_hp || '';
-          document.getElementById('tokoNote').innerText = 'Kartu sudah aktif. Masukkan PIN untuk mengubah data atau menonaktifkan.';
+          document.getElementById('tokoNote').innerText = 'Kartu aktif. Masukkan PIN untuk update data atau menonaktifkan.';
           
           document.getElementById('btnActivate').innerText = 'Update Data';
           document.getElementById('btnDeactivate').style.display = 'block';
@@ -119,9 +119,14 @@
           }
         } else {
           badge.className = 'badge badge-inactive';
-          badge.innerText = 'STATUS: BELUM AKTIF / UNACTIVE';
+          badge.innerText = 'STATUS: BELUM AKTIF';
+          document.getElementById('formTitle').innerText = 'Form Aktivasi Kartu';
+          
+          // BERSIHKAN FORM SAAT STATUS UNACTIVE/KOSONG
           document.getElementById('nama_toko').value = '';
           document.getElementById('no_hp').value = '';
+          document.getElementById('tokoNote').innerText = '';
+          
           document.getElementById('btnActivate').innerText = 'Aktivasi Kartu';
           document.getElementById('btnDeactivate').style.display = 'none';
           btnReviewLink.style.display = 'none';
@@ -161,7 +166,7 @@
       btnActivate.disabled = true;
       btnDeactivate.disabled = true;
       msgDiv.style.color = '#007bff';
-      msgDiv.innerText = 'Menyimpan data ke database...';
+      msgDiv.innerText = 'Memproses...';
 
       const payload = {
         card_id: cardId,
@@ -183,18 +188,18 @@
 
         if (resData.status === 'success') {
           msgDiv.style.color = 'green';
-          msgDiv.innerText = 'Berhasil tersimpan ke database!';
+          msgDiv.innerText = resData.message || 'Berhasil tersimpan!';
           document.getElementById('pin').value = '';
           document.getElementById('pin_baru').value = '';
           
           setTimeout(() => {
             btnActivate.disabled = false;
             btnDeactivate.disabled = false;
-            loadCardData();
-          }, 1000);
+            loadCardData(); // Refresh status form
+          }, 800);
         } else {
           msgDiv.style.color = 'red';
-          msgDiv.innerText = resData.message || 'Gagal menyimpan data.';
+          msgDiv.innerText = resData.message || 'Gagal memproses data.';
           btnActivate.disabled = false;
           btnDeactivate.disabled = false;
         }
