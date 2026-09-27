@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengelolaan Kartu</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h2 { text-align: center; margin-bottom: 10px; color: #333; font-size: 20px; }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; }
+    .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge-inactive { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .badge-container { text-align: center; margin-bottom: 15px; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; color: #555; font-size: 13px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    input[readonly] { background-color: #e9ecef; color: #495057; }
+    .btn-group { display: flex; gap: 10px; margin-top: 18px; }
+    button, .btn-link { flex: 1; padding: 11px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; text-align: center; text-decoration: none; }
+    button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+    .btn-primary { background-color: #007bff; }
+    .btn-danger { background-color: #dc3545; }
+    .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 12px; }
+    #message { margin-top: 12px; text-align: center; font-size: 13px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2 id="formTitle">Form Pengelolaan Kartu</h2>
+    <div class="badge-container">
+      <span id="statusBadge" class="badge badge-inactive">Memuat...</span>
+    </div>
+
+    <form id="activationForm">
+      <input type="hidden" id="card_id" name="card_id">
+
+      <div class="form-group">
+        <label>Card ID</label>
+        <input type="text" id="no_merchant" readonly>
+      </div>
+
+      <div class="form-group">
+        <label>PIN <small style="color: red;">*</small></label>
+        <input type="password" id="pin" placeholder="Masukkan PIN" required autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>PIN Baru <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="password" id="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>Link Google Review / Maps <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" placeholder="Tempel URL Google Maps..." required autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label>No HP <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
+        <input type="tel" id="no_hp" placeholder="Contoh: 08123456789">
+      </div>
+
+      <div class="btn-group">
+        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Simpan / Update</button>
+        <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
+      </div>
+
+      <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
+        ⭐ Tes Buka Link
+      </a>
+    </form>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zdKhbzWRB7PS80UtLB0mAnlr0uhLll5Jy1eJNo8yyQZnId-SksTgKpC/exec';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardId = urlParams.get('id') || 'A000001';
+
+    document.getElementById('card_id').value = cardId;
+    document.getElementById('no_merchant').value = cardId;
+
+    async function loadCardData() {
+      const msgDiv = document.getElementById('message');
+      const badge = document.getElementById('statusBadge');
+      const btnReviewLink = document.getElementById('btnReviewLink');
+
+      msgDiv.innerText = 'Memuat data...';
+
+      try { 
+        const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
+        const data = await res.json();
+
+        if (data.card_status === 'active') {
+          msgDiv.innerText = '';
+          badge.className = 'badge badge-active';
+          badge.innerText = 'STATUS: AKTIF';
+          
+          document.getElementById('nama_toko').value = data.nama_toko || '';
+          document.getElementById('no_hp').value = data.no_hp || '';
+          document.getElementById('btnActivate').innerText = 'Update Data';
+          document.getElementById('btnDeactivate').style.display = 'block';
+
+          if (data.nama_toko && String(data.nama_toko).startsWith('http')) {
+            btnReviewLink.href = data.nama_toko;
+            btnReviewLink.style.display = 'block';
+          } else {
+            btnReviewLink.style.display = 'none';
+          }
+        } else {
+          badge.className = 'badge badge-inactive';
+          badge.innerText = 'STATUS: BELUM AKTIF / UNACTIVE';
+          
+          // Kosongkan form saat status unactive
+          document.getElementById('nama_toko').value = '';
+          document.getElementById('no_hp').value = '';
+          document.getElementById('btnActivate').innerText = 'Aktivasi Kartu';
+          document.getElementById('btnDeactivate').style.display = 'none';
+          btnReviewLink.style.display = 'none';
+          msgDiv.innerText = '';
+        }
+      } catch (err) {
+        badge.className = 'badge badge-inactive';
+        badge.innerText = 'BELUM AKTIF / KOSONG';
+        msgDiv.innerText = '';
+      }
+    }
+
+    loadCardData();
+
+    async function submitForm(actionType) {
+      const pin = document.getElementById('pin').value.trim();
+      const pinBaru = document.getElementById('pin_baru').value.trim();
+      const namaTokoInput = document.getElementById('nama_toko').value.trim();
+      const noHp = document.getElementById('no_hp').value.trim();
+      const msgDiv = document.getElementById('message');
+      const btnActivate = document.getElementById('btnActivate');
+      const btnDeactivate = document.getElementById('btnDeactivate');
+
+      if (!pin) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'PIN wajib diisi!';
+        return;
+      }
+
+      if (actionType === 'activate' && !namaTokoInput) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Link Google Maps wajib diisi!';
+        return;
+      }
+
+      btnActivate.disabled = true;
+      btnDeactivate.disabled = true;
+      msgDiv.style.color = '#007bff';
+      msgDiv.innerText = 'Menyimpan...';
+
+      const payload = {
+        card_id: cardId,
+        pin: pin,
+        pin_baru: pinBaru,
+        nama_toko: namaTokoInput,
+        no_hp: noHp,
+        action: actionType
+      };
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const resData = await response.json();
+
+        if (resData.status === 'success') {
+          msgDiv.style.color = 'green';
+          msgDiv.innerText = resData.message;
+          document.getElementById('pin').value = '';
+          document.getElementById('pin_baru').value = '';
+          
+          setTimeout(() => {
+            btnActivate.disabled = false;
+            btnDeactivate.disabled = false;
+            loadCardData();
+          }, 500);
+        } else {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = resData.message || 'Gagal menyimpan.';
+          btnActivate.disabled = false;
+          btnDeactivate.disabled = false;
+        }
+
+      } catch (err) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Terjadi kesalahan sistem.';
+        btnActivate.disabled = false;
+        btnDeactivate.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

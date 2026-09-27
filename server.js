@@ -1,75 +1,81 @@
+// File: server.js (Project qr_maps)
 const express = require('express');
 const path = require('path');
 const app = express();
 
-// --- KONFIGURASI ---
-const SPREADSHEET_ID = '1zP9ilzwuenTdbavzbFFxbDLjTrkbOjqWJDhijweoWAA';
-const GOOGLE_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
-const SHEET_NAME = 'cards_export';
+const GAS_DATABASE_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zdKhbzWRB7PS80UtLB0mAnlr0uhLll5Jy1eJNo8yyQZnId-SksTgKpC/exec';
 
-app.use(express.static(path.join(__dirname, 'public')));
+// 1. Sajikan file statis dari folder root
+app.use(express.static(path.join(__dirname)));
 
-app.get('/c/:id', async (req, res) => {
-  // Matikan caching Vercel CDN & Browser
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
+// 2. Alias Route (Handle 'c' maupun 'k' biar gak pernah 404 lagi)
+app.get('/activate.html', (req, res) => res.sendFile(path.join(__dirname, 'activate.html')));
+app.get('/aktivate.html', (req, res) => res.sendFile(path.join(__dirname, 'activate.html')));
 
+// Fungsi fetch dengan timeout 3 detik agar TIDAK LEMOT
+async function fetchWithTimeout(url, timeout = 3000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
+// 3. Endpoint pemicu QR /r/:id
+app.get('/r/:id', async (req, res) => {
   const cardId = req.params.id;
-  const isDebug = req.query.debug === 'true';
 
   try {
-    const cardIndex = parseInt(cardId.replace(/[^0-9]/g, ''), 10);
-    
-    if (isNaN(cardIndex) || cardIndex < 1) {
-      if (isDebug) return res.json({ error: 'Format Card ID tidak valid', cardId });
+    // Dipanggil dengan timeout 3 detik
+    const response = await fetchWithTimeout(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`, 3000);
+    const textData = await response.text();
+    let cardData = {};
+
+    try {
+      cardData = JSON.parse(textData);
+    } catch (parseErr) {
       return res.redirect(302, `/activate.html?id=${cardId}`);
     }
 
-    const rowNumber = cardIndex + 1;
-
-    // Hapus parameter &_t agar Google Sheets API tidak error 400
-    const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/'${SHEET_NAME}'!A${rowNumber}:D${rowNumber}?key=${GOOGLE_API_KEY}`;
-
-    const apiRes = await fetch(apiUrl, { cache: 'no-store' });
-    const data = await apiRes.json();
-
-    const row = (data.values && data.values[0]) ? data.values[0] : [];
-    
-    let gmapsUrl = (row[2] || '').trim();
-    let status = (row[3] || '').trim().toLowerCase();
-
-    if (isDebug) {
-      return res.json({
-        cardId,
-        rowNumberTarget: rowNumber,
-        googleApiHttpStatus: apiRes.status,
-        rawGoogleApiResponse: data,
-        extractedRow: row,
-        parsedGmapsUrl: gmapsUrl,
-        parsedStatus: status,
-        decision: (status === 'active' && gmapsUrl !== '') ? 'REDIRECT_KE_GMAPS' : 'REDIRECT_KE_AKTIVASI'
-      });
-    }
-
-    if (status === 'active' && gmapsUrl !== '') {
-      if (!gmapsUrl.startsWith('http://') && !gmapsUrl.startsWith('https://')) {
-        gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gmapsUrl)}`;
-      }
-      return res.redirect(302, gmapsUrl);
-    } else {
+    // Skenario A: Kartu SUDAH AKTIF
+    if (cardData.status === 'active' && cardData.target_url && cardData.target_url.startsWith('http')) {
+      return res.redirect(302, cardData.target_url);
+    } 
+    // Skenario B: BELUM AKTIF
+    else {
       return res.redirect(302, `/activate.html?id=${cardId}`);
     }
-  } catch (err) {
-    console.error('Error fast redirect:', err);
-    if (isDebug) return res.json({ error: err.toString() });
+
+  } catch (error) {
+    // Jika GAS lemot / error / timeout > 3 detik, LANGSUNG REDIRECT tanpa nunggu!
+    console.log("GAS Response Slow/Timeout, fallback to activate.html");
     return res.redirect(302, `/activate.html?id=${cardId}`);
   }
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server berjalan di http://localhost:${PORT}`));
-}
+// 4. Endpoint pendukung /api/r
+app.get('/api/r', async (req, res) => {
+  const cardId = req.query.id || req.query.card_id;
+  if (!cardId) return res.status(400).send("ID Kartu tidak ditemukan.");
+
+  try {
+    const response = await fetchWithTimeout(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`, 3000);
+    const textData = await response.text();
+    let cardData = JSON.parse(textData);
+
+    if (cardData.status === 'active' && cardData.target_url && cardData.target_url.startsWith('http')) {
+      return res.redirect(302, cardData.target_url);
+    } else {
+      return res.redirect(302, `/activate.html?id=${cardId}`);
+    }
+  } catch (error) {
+    return res.redirect(302, `/activate.html?id=${cardId}`);
+  }
+});
 
 module.exports = app;
