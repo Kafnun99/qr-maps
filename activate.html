@@ -63,9 +63,11 @@
         <small id="tokoNote" class="info-note"></small>
       </div>
 
+      <!-- PERUBAHAN TAMPILAN: INPUT EMAIL (WAJIB) METADATA TETAP NO_HP -->
       <div class="form-group">
-        <label for="no_hp">No HP <small style="color: #888; font-weight: normal;">(Opsional)</small></label>
-        <input type="tel" id="no_hp" name="no_hp" placeholder="Contoh: 08123456789">
+        <label for="no_hp">Email Google <small style="color: red;">*</small></label>
+        <input type="email" id="no_hp" name="no_hp" placeholder="Contoh: merchant@gmail.com" required autocomplete="off">
+        <small class="info-note">Email untuk mendapatkan akses trafik</small>
       </div>
 
       <div class="btn-group">
@@ -73,7 +75,7 @@
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
-      <!-- PANEL STATISTIK MERCHANT (POIN A) -->
+      <!-- PANEL STATISTIK MERCHANT -->
       <div id="merchantStats" style="display: none; margin-top: 20px; padding: 15px; background: #eef5ff; border-radius: 8px; border: 1px solid #b8daff;">
         <h4 style="margin-bottom: 8px; color: #004085; text-align: center;">📊 Statistik QR Anda</h4>
         <p style="font-size: 14px; text-align: center; margin-bottom: 10px;">Total Scan: <strong id="totalScanCount" style="font-size: 18px; color: #007bff;">0</strong> kali</p>
@@ -103,7 +105,6 @@
   </div>
 
   <script>
-    // MASUKKAN URL GAS TERBARU KAMU DI SINI
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 
@@ -165,7 +166,7 @@
             
             document.getElementById('nama_toko').value = data.nama_toko;
             document.getElementById('nama_toko').readOnly = true;
-            document.getElementById('no_hp').value = data.no_hp;
+            document.getElementById('no_hp').value = data.no_hp; // Mengisi data email yang tersimpan
             document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
             
             document.getElementById('btnActivate').style.display = 'none';
@@ -178,7 +179,6 @@
               btnReviewLink.style.display = 'none';
             }
 
-            // PANGGIL STATISTIK KHUSUS KARTU INI
             loadMerchantStats(cardId);
           } else {
             badge.className = 'badge badge-inactive';
@@ -204,7 +204,6 @@
       }
     }
 
-    // FUNGSI UNTUK MEMUAT DATA STATISTIK MERCHANT
     async function loadMerchantStats(id) {
       try {
         const res = await fetch(`${GAS_URL}?card_id=${id}&action=get_stats`);
@@ -241,7 +240,7 @@
       const pin = document.getElementById('pin').value.trim();
       const pinBaru = document.getElementById('pin_baru').value.trim();
       const namaTokoInput = document.getElementById('nama_toko').value.trim();
-      const noHp = document.getElementById('no_hp').value.trim();
+      const emailInput = document.getElementById('no_hp').value.trim(); // Email tersimpan di variabel no_hp
       const msgDiv = document.getElementById('message');
       const btnActivate = document.getElementById('btnActivate');
       const btnDeactivate = document.getElementById('btnDeactivate');
@@ -252,10 +251,17 @@
         return;
       }
 
-      if (actionType === 'activate' && !namaTokoInput) {
-        msgDiv.style.color = 'red';
-        msgDiv.innerText = 'Nama Toko wajib diisi!';
-        return;
+      if (actionType === 'activate') {
+        if (!namaTokoInput) {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = 'Nama Toko wajib diisi!';
+          return;
+        }
+        if (!emailInput) {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = 'Email Google wajib diisi!';
+          return;
+        }
       }
 
       btnActivate.disabled = true;
@@ -270,7 +276,7 @@
       formData.append('pin', pin);
       formData.append('pin_baru', pinBaru);
       formData.append('nama_toko', targetGmapsLink);
-      formData.append('no_hp', noHp);
+      formData.append('no_hp', emailInput); // Kirim nilai email tetap menggunakan key 'no_hp'
       formData.append('action', actionType);
 
       try {
