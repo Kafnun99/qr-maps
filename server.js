@@ -8,25 +8,37 @@ const GAS_DATABASE_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zd
 // 1. Sajikan file statis dari folder root
 app.use(express.static(path.join(__dirname)));
 
-// 2. Alias route: jika ada yang minta /activate.html (dengan 'c'), kirim file /aktivate.html (dengan 'k')
-// Alias route: jika ada yang minta /activate.html, kirim file activate.html (pakai c)
-app.get('/activate.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'activate.html'));
-});
+// 2. Alias Route (Handle 'c' maupun 'k' biar gak pernah 404 lagi)
+app.get('/activate.html', (req, res) => res.sendFile(path.join(__dirname, 'activate.html')));
+app.get('/aktivate.html', (req, res) => res.sendFile(path.join(__dirname, 'activate.html')));
+
+// Fungsi fetch dengan timeout 3 detik agar TIDAK LEMOT
+async function fetchWithTimeout(url, timeout = 3000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
 
 // 3. Endpoint pemicu QR /r/:id
 app.get('/r/:id', async (req, res) => {
   const cardId = req.params.id;
 
   try {
-    const response = await fetch(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`);
+    // Dipanggil dengan timeout 3 detik
+    const response = await fetchWithTimeout(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`, 3000);
     const textData = await response.text();
     let cardData = {};
 
     try {
       cardData = JSON.parse(textData);
     } catch (parseErr) {
-      console.error("Respon dari GAS bukan JSON valid:", textData);
       return res.redirect(302, `/activate.html?id=${cardId}`);
     }
 
@@ -40,7 +52,8 @@ app.get('/r/:id', async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Gagal membaca database QR Maps:", error);
+    // Jika GAS lemot / error / timeout > 3 detik, LANGSUNG REDIRECT tanpa nunggu!
+    console.log("GAS Response Slow/Timeout, fallback to activate.html");
     return res.redirect(302, `/activate.html?id=${cardId}`);
   }
 });
@@ -51,25 +64,18 @@ app.get('/api/r', async (req, res) => {
   if (!cardId) return res.status(400).send("ID Kartu tidak ditemukan.");
 
   try {
-    const response = await fetch(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`);
+    const response = await fetchWithTimeout(`${GAS_DATABASE_URL}?action=check_card&card_id=${cardId}`, 3000);
     const textData = await response.text();
-    let cardData = {};
-
-    try {
-      cardData = JSON.parse(textData);
-    } catch (e) {
-      return res.redirect(302, `/aktivate.html?id=${cardId}`);
-    }
+    let cardData = JSON.parse(textData);
 
     if (cardData.status === 'active' && cardData.target_url && cardData.target_url.startsWith('http')) {
       return res.redirect(302, cardData.target_url);
     } else {
-      return res.redirect(302, `/aktivate.html?id=${cardId}`);
+      return res.redirect(302, `/activate.html?id=${cardId}`);
     }
   } catch (error) {
-    return res.redirect(302, `/aktivate.html?id=${cardId}`);
+    return res.redirect(302, `/activate.html?id=${cardId}`);
   }
 });
 
-// Export app untuk Vercel Serverless Handler
 module.exports = app;
