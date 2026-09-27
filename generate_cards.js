@@ -1,56 +1,15 @@
-const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 
-const db = new sqlite3.Database('./cards.db');
+const filePath = path.join(__dirname, 'cards_export.csv');
+let csvContent = 'card_id,pin,card_status\n';
 
-// --- KONFIGURASI 100.000 KARTU ---
-const TOTAL_CARDS = 100000;
-const PREFIX = 'A';
-const DEFAULT_PIN = '8888';
+// Menghasilkan 1000 kartu default
+for (let i = 1; i <= 1000; i++) {
+  const cardId = 'A' + i.toString().padStart(6, '0');
+  const defaultPin = '1234';
+  csvContent += `${cardId},${defaultPin},inactive\n`;
+}
 
-// URL Vercel webQR asli Anda + path scan.html dengan parameter id=
-const DOMAIN_URL = 'https://smart-qr-code-iota.vercel.app/scan.html?id='; 
-
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS cards (
-      card_id TEXT PRIMARY KEY,
-      pin TEXT NOT NULL,
-      gmaps_url TEXT,
-      status TEXT DEFAULT 'unactive'
-    )
-  `);
-
-  // Gunakan Transaction agar proses insert 100.000 data super cepat
-  db.run('BEGIN TRANSACTION');
-
-  const stmt = db.prepare(`INSERT OR IGNORE INTO cards (card_id, pin, status) VALUES (?, ?, 'unactive')`);
-  const stream = fs.createWriteStream(path.join(__dirname, 'cards_export.csv'));
-  stream.write('Card_ID,PIN,QR_URL\n');
-
-  console.log(`⏳ Memproses pembuatan ${TOTAL_CARDS} kartu...`);
-
-  for (let i = 1; i <= TOTAL_CARDS; i++) {
-    // Format ID 6 digit angka: A000001 sampai A100000
-    const cardId = PREFIX + i.toString().padStart(6, '0');
-    
-    // Hasilnya: https://smart-qr-code-iota.vercel.app/scan.html?id=A000001
-    const qrUrl = DOMAIN_URL + cardId;
-
-    stmt.run(cardId, DEFAULT_PIN);
-    stream.write(`${cardId},${DEFAULT_PIN},${qrUrl}\n`);
-  }
-
-  stmt.finalize();
-  
-  db.run('COMMIT', (err) => {
-    if (!err) {
-      console.log(`✅ BERHASIL! ${TOTAL_CARDS} kartu tersimpan di database dan cards_export.csv`);
-    }
-  });
-
-  stream.end();
-});
-
-db.close();
+fs.writeFileSync(filePath, csvContent);
+console.log('✅ File cards_export.csv berhasil dibuat!');

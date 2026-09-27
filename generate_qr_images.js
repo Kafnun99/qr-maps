@@ -12,11 +12,11 @@ if (!fs.existsSync(outputDir)) {
 // BACA CSV DAN SECARA BERTAHAP SIMPAN GAMBAR PNG
 const generateQRs = async () => {
   console.log('⏳ Mulai generate gambar QR Code...');
-  
+
   // Contoh generate 1.000 kartu pertama (sesuaikan jumlahnya)
   for (let i = 1; i <= 1000; i++) {
     const cardId = 'A' + i.toString().padStart(6, '0');
-    const url = `https://smart-qr-code-iota.vercel.app/scan.html?id=${cardId}`;
+    const url = `https://qr-maps.vercel.app/c/${cardId}`;
     const filePath = path.join(outputDir, `${cardId}.png`);
 
     await QRCode.toFile(filePath, url, {
@@ -28,4 +28,4 @@ const generateQRs = async () => {
   console.log('✅ Selesai! Gambar QR tersimpan di folder qr_codes');
 };
 
-generateQRs();  
+generateQRs();

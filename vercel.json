@@ -1,15 +1,13 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
+      "source": "/c/:id",
+      "destination": "/api/redirect?id=:id"
+    },
     {
-      "src": "/(.*)",
-      "dest": "server.js"
+      "source": "/activate.html",
+      "destination": "/public/activate.html"
     }
   ]
 }

@@ -73,7 +73,6 @@
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
-      <!-- Tombol baru untuk langsung ke Google Review -->
       <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
         ⭐ Buka Halaman Google Review
       </a>
@@ -83,6 +82,7 @@
   </div>
 
   <script>
+    // MASUKKAN URL GAS TERBARU KAMU DI SINI
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwodRYnXTP7pgvvDGX6guR6xeSKUCDUFF3IT5-1o0-kE3MkYT3S97ms36wY9NblWYbM/exec';
     const GOOGLE_MAPS_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 
@@ -150,7 +150,6 @@
             document.getElementById('btnActivate').style.display = 'none';
             document.getElementById('btnDeactivate').style.display = 'block';
 
-            // Tampilkan tombol Google Review jika URL valid
             if (data.nama_toko && data.nama_toko.startsWith('http')) {
               btnReviewLink.href = data.nama_toko;
               btnReviewLink.style.display = 'block';
