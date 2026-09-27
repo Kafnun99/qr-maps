@@ -4,11 +4,9 @@ const app = express();
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routing untuk redirect /c/:id ke Web App GAS atau halaman Aktivasi
 app.get('/c/:id', async (req, res) => {
   const cardId = req.params.id;
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwodRYnXTP7pgvvDGX6guR6xeSKUCDUFF3IT5-1o0-kE3MkYT3S97ms36wY9NblWYbM/exec';
-
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwodRYnXTP7pgvvDGX6guR6xeSKUCDUFF3IT5-1o0-kE3MkYT3S97ms36wY9NblWYbM/exec'
   try {
     const response = await fetch(`${GAS_URL}?card_id=${cardId}`);
     const data = await response.json();
@@ -23,5 +21,9 @@ app.get('/c/:id', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+module.exports = app;
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}

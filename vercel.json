@@ -2,12 +2,16 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/c/:id",
-      "destination": "/api/redirect?id=:id"
+      "source": "/",
+      "destination": "/public/activate.html"
     },
     {
       "source": "/activate.html",
       "destination": "/public/activate.html"
+    },
+    {
+      "source": "/c/:id",
+      "destination": "/server.js"
     }
   ]
 }
