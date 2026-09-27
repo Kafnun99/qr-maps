@@ -9,8 +9,9 @@ const GAS_DATABASE_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zd
 app.use(express.static(path.join(__dirname)));
 
 // 2. Alias route: jika ada yang minta /activate.html (dengan 'c'), kirim file /aktivate.html (dengan 'k')
+// Alias route: jika ada yang minta /activate.html, kirim file activate.html (pakai c)
 app.get('/activate.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'aktivate.html'));
+  res.sendFile(path.join(__dirname, 'activate.html'));
 });
 
 // 3. Endpoint pemicu QR /r/:id
@@ -26,7 +27,7 @@ app.get('/r/:id', async (req, res) => {
       cardData = JSON.parse(textData);
     } catch (parseErr) {
       console.error("Respon dari GAS bukan JSON valid:", textData);
-      return res.redirect(302, `/aktivate.html?id=${cardId}`);
+      return res.redirect(302, `/activate.html?id=${cardId}`);
     }
 
     // Skenario A: Kartu SUDAH AKTIF
@@ -35,12 +36,12 @@ app.get('/r/:id', async (req, res) => {
     } 
     // Skenario B: BELUM AKTIF
     else {
-      return res.redirect(302, `/aktivate.html?id=${cardId}`);
+      return res.redirect(302, `/activate.html?id=${cardId}`);
     }
 
   } catch (error) {
     console.error("Gagal membaca database QR Maps:", error);
-    return res.redirect(302, `/aktivate.html?id=${cardId}`);
+    return res.redirect(302, `/activate.html?id=${cardId}`);
   }
 });
 
