@@ -1,6 +1,6 @@
 // File: server.js pada project qr-maps
 
-const GAS_DATABASE_URL = 'URL_GOOGLE_APPS_SCRIPT_DATABASE_QR_MAPS_ANDA'; // Script yang terhubung ke sheet 'card export'
+const GAS_DATABASE_URL = 'https://script.google.com/macros/s/AKfycbwL1g3RLGss0zdKhbzWRB7PS80UtLB0mAnlr0uhLll5Jy1eJNo8yyQZnId-SksTgKpC/exec'; // Script yang terhubung ke sheet 'card export'
 
 app.get('/r/:id', async (req, res) => {
   const cardId = req.params.id;
