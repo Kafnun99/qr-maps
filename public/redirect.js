@@ -1,36 +1,36 @@
-// Dapatkan card_id dari query string URL (contoh: ?id=A000001)
+// Dapatkan card_id dari query string URL (?id=A000001)
 const urlParams = new URLSearchParams(window.location.search);
 const cardId = urlParams.get('id') || 'A000001';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
 
 /**
- * Fungsi pendeteksi jenis perangkat secara spesifik:
+ * Rumus Deteksi Perangkat Spesifik:
  * Output: "Android", "iOS", atau "Desktop"
  */
 function getDeviceType() {
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const ua = navigator.userAgent || navigator.vendor || window.opera || '';
 
-  // Deteksi Perangkat Android
+  // 1. Deteksi Android
   if (/android/i.test(ua)) {
     return 'Android';
   }
 
-  // Deteksi Perangkat iOS (iPhone, iPod, iPad, serta iPadOS versi baru)
-  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
+  // 2. Deteksi iOS (iPhone, iPad, iPod, & iPadOS versi baru)
+  if (/iPhone|iPad|iPod/i.test(ua)) {
     return 'iOS';
   }
   if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) {
     return 'iOS';
   }
 
-  // Jika bukan Android atau iOS, dikategorikan sebagai Desktop
+  // 3. Deteksi Desktop (Windows, macOS, Linux, dll)
   return 'Desktop';
 }
 
 async function handleRedirect() {
   try {
-    // 1. Ambil data IP dan Lokasi Pengunjung
+    // 1. Ambil data IP dan Lokasi
     let city = 'Unknown';
     let country = 'Unknown';
     let ip = '';
@@ -42,10 +42,10 @@ async function handleRedirect() {
       country = ipData.country_name || 'Unknown';
       ip = ipData.ip || '';
     } catch (e) {
-      console.warn('Gagal mengambil lokasi IP:', e);
+      console.warn('Gagal mengambil data IP/Lokasi:', e);
     }
 
-    // Ambil jenis perangkat yang spesifik
+    // Ambil jenis perangkat spesifik ("Android", "iOS", "Desktop")
     const device = getDeviceType();
     const userAgent = navigator.userAgent;
 
@@ -57,7 +57,7 @@ async function handleRedirect() {
     logData.append('city', city);
     logData.append('country', country);
     logData.append('user_agent', userAgent);
-    logData.append('device', device); // Berisi: Android / iOS / Desktop
+    logData.append('device', device);
     logData.append('timestamp', new Date().toISOString());
 
     // Jalankan pencatatan log di background
@@ -86,5 +86,5 @@ async function handleRedirect() {
   }
 }
 
-// Eksekusi fungsi saat halaman dimuat
+// Eksekusi otomatis
 handleRedirect();
