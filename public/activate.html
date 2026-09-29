@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aktivasi Kartu & Traffic Analytics</title>
-  <!-- Chart.js CDN untuk Grafik -->
+  <!-- CDN Chart.js untuk Grafik -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
@@ -30,12 +30,12 @@
     #message { margin-top: 12px; text-align: center; font-size: 13px; font-weight: bold; }
     .info-note { font-size: 11px; color: #6c757d; margin-top: 4px; display: block; }
 
-    /* STYLES DASHBOARD LOG SCAN */
+    /* STYLES ANALYTICS & GRAFIK */
     .analytics-section { margin-top: 25px; padding: 18px; background: #ffffff; border-radius: 10px; border: 1px solid #e0e0e0; }
     .stat-cards { display: flex; gap: 10px; margin-bottom: 15px; }
-    .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; text-align: center; }
-    .stat-number { font-size: 20px; font-weight: bold; color: #007bff; }
-    .stat-label { font-size: 11px; color: #6c757d; }
+    .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; text-align: center; }
+    .stat-number { font-size: 18px; font-weight: bold; color: #007bff; }
+    .stat-label { font-size: 11px; color: #6c757d; margin-top: 3px; }
     .filter-grid { display: flex; gap: 8px; margin-bottom: 15px; }
     .chart-container { position: relative; width: 100%; height: 220px; margin-bottom: 15px; }
     .table-wrapper { max-height: 180px; overflow-y: auto; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; }
@@ -62,7 +62,7 @@
 
       <div class="form-group">
         <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
-        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN" required autocomplete="off">
+        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
       </div>
 
       <div class="form-group">
@@ -71,14 +71,15 @@
       </div>
 
       <div class="form-group">
-        <label for="nama_toko">LINK Tujuan QR <small style="color: red;">*</small></label>
-        <input type="text" id="nama_toko" name="nama_toko" placeholder="https://smartqrbikinkarya.com" required autocomplete="off">
+        <label for="nama_toko">LINK yang Akan Digunakan <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" name="nama_toko" placeholder="https://smart-qr-code-iota.vercel.app/" required autocomplete="off">
         <small id="tokoNote" class="info-note"></small>
       </div>
 
       <div class="form-group">
-        <label for="no_hp">Email Google Owner <small style="color: red;">*</small></label>
+        <label for="no_hp">Email Google <small style="color: red;">*</small></label>
         <input type="email" id="no_hp" name="no_hp" placeholder="merchant@gmail.com" required autocomplete="off">
+        <small class="info-note">Email untuk mendapatkan akses trafik</small>
       </div>
 
       <div class="btn-group">
@@ -93,28 +94,28 @@
 
     <div id="message"></div>
 
-    <!-- UI ANALYTICS TRAFFIC LOG SCAN (KHUSUS ID KARTU INI) -->
+    <!-- UI DASHBOARD GRAFIK & FILTER (VERSI BARU) -->
     <div id="merchantStats" class="analytics-section" style="display: none;">
       <h3>📊 Traffic Analytics Log Scan</h3>
-      <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 12px;">Khusus data untuk ID Kartu Anda</p>
+      <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 12px;">Data Scan Khusus ID Kartu Anda</p>
       
-      <!-- Summary Cards -->
+      <!-- Ringkasan Angka -->
       <div class="stat-cards">
         <div class="stat-box">
           <div id="totalScanCount" class="stat-number">0</div>
           <div class="stat-label">Total Scan</div>
         </div>
         <div class="stat-box">
-          <div id="topDeviceName" class="stat-number" style="font-size: 15px; color: #28a745;">-</div>
-          <div class="stat-label">Perangkat Terbanyak</div>
+          <div id="topDeviceName" class="stat-number" style="font-size: 14px; color: #28a745;">-</div>
+          <div class="stat-label">Device Terbanyak</div>
         </div>
         <div class="stat-box">
-          <div id="topCityName" class="stat-number" style="font-size: 15px; color: #fd7e14;">-</div>
+          <div id="topCityName" class="stat-number" style="font-size: 14px; color: #fd7e14;">-</div>
           <div class="stat-label">Kota Terbanyak</div>
         </div>
       </div>
 
-      <!-- Control Filters -->
+      <!-- Filter Dropdown -->
       <div class="filter-grid">
         <select id="filterDevice" onchange="applyFilters()">
           <option value="ALL">Semua Perangkat</option>
@@ -127,12 +128,12 @@
         </select>
       </div>
 
-      <!-- Chart Canvas -->
+      <!-- Area Pie Chart / Donut Chart -->
       <div class="chart-container">
         <canvas id="deviceChart"></canvas>
       </div>
 
-      <!-- Log Scan Table -->
+      <!-- Tabel Detail Log -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -186,7 +187,7 @@
             document.getElementById('nama_toko').value = data.nama_toko;
             document.getElementById('nama_toko').readOnly = true;
             document.getElementById('no_hp').value = data.no_hp;
-            document.getElementById('tokoNote').innerText = 'Kartu aktif. Masukkan PIN & klik Nonaktifkan untuk mengubah link.';
+            document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
             
             document.getElementById('btnActivate').style.display = 'none';
             document.getElementById('btnDeactivate').style.display = 'block';
@@ -228,7 +229,7 @@
           rawLogsData = data.scans;
           document.getElementById('merchantStats').style.display = 'block';
 
-          // Set Pilihan Filter Kota
+          // Mengisi dropdown pilihan kota secara otomatis
           const cities = [...new Set(rawLogsData.map(item => item.city))].filter(Boolean);
           const citySelect = document.getElementById('filterCity');
           citySelect.innerHTML = '<option value="ALL">Semua Kota</option>';
@@ -257,10 +258,8 @@
     }
 
     function renderAnalytics(logs) {
-      // 1. Total Scan
       document.getElementById('totalScanCount').innerText = logs.length;
 
-      // 2. Hitung Perangkat & Kota Terbanyak
       const deviceCounts = { 'Android': 0, 'iOS': 0, 'Desktop': 0 };
       const cityCounts = {};
 
@@ -277,7 +276,6 @@
       document.getElementById('topDeviceName').innerText = logs.length > 0 ? topDevice : '-';
       document.getElementById('topCityName').innerText = logs.length > 0 ? topCity : '-';
 
-      // 3. Render Tabel Log Scan
       const tbody = document.getElementById('scanLogsTable');
       tbody.innerHTML = '';
 
@@ -295,7 +293,6 @@
         });
       }
 
-      // 4. Render Grafik (Chart.js)
       renderChart(deviceCounts);
     }
 
@@ -303,7 +300,7 @@
       const ctx = document.getElementById('deviceChart').getContext('2d');
 
       if (chartInstance) {
-        chartInstance.destroy(); // Hapus grafik lama sebelum menggambar grafik baru
+        chartInstance.destroy();
       }
 
       chartInstance = new Chart(ctx, {
