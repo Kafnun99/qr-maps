@@ -1,329 +1,391 @@
-import React, { useState, useEffect, useRef } from 'react';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aktivasi Kartu & Traffic Analytics</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 550px; }
+    h2, h3 { text-align: center; margin-bottom: 10px; color: #333; }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; }
+    .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .badge-inactive { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+    .badge-container { text-align: center; }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; margin-bottom: 4px; font-weight: bold; color: #555; font-size: 13px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    input[readonly] { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    button, .btn-link { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; text-align: center; text-decoration: none; }
+    button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+    .btn-primary { background-color: #007bff; }
+    .btn-primary:hover:not(:disabled) { background-color: #0056b3; }
+    .btn-danger { background-color: #dc3545; }
+    .btn-danger:hover:not(:disabled) { background-color: #a71d2a; }
+    .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 12px; }
+    #message { margin-top: 12px; text-align: center; font-size: 13px; font-weight: bold; }
+    .info-note { font-size: 11px; color: #6c757d; margin-top: 4px; display: block; }
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
+    /* ANALYTICS STYLES */
+    .analytics-section { margin-top: 25px; padding: 18px; background: #ffffff; border-radius: 10px; border: 1px solid #e0e0e0; }
+    .stat-cards { display: flex; gap: 10px; margin-bottom: 15px; }
+    .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px; text-align: center; }
+    .stat-number { font-size: 18px; font-weight: bold; color: #007bff; }
+    .stat-label { font-size: 11px; color: #6c757d; margin-top: 3px; }
+    .filter-grid { display: flex; gap: 8px; margin-bottom: 15px; }
+    .chart-container { position: relative; width: 100%; height: 200px; margin-bottom: 15px; }
+    .table-wrapper { max-height: 180px; overflow-y: auto; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 8px; border-bottom: 1px solid #eee; }
+    th { background: #f1f3f5; position: sticky; top: 0; }
+  </style>
+</head>
+<body>
 
-export default function Activate() {
-  const [cardId, setCardId] = useState('A000001');
-  const [noMerchant, setNoMerchant] = useState(1);
-  const [status, setStatus] = useState('loading'); // 'active', 'inactive', 'loading'
-  const [namaToko, setNamaToko] = useState('');
-  const [emailOwner, setEmailOwner] = useState('');
-  const [pin, setPin] = useState('');
-  const [pinBaru, setPinBaru] = useState('');
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  <div class="card">
+    <h2>Form Aktivasi Kartu</h2>
+    <div class="badge-container">
+      <span id="statusBadge" class="badge badge-inactive">Memeriksa Status...</span>
+    </div>
 
-  // States Log Analytics
-  const [rawLogs, setRawLogs] = useState([]);
-  const [filteredLogs, setFilteredLogs] = useState([]);
-  const [filterDevice, setFilterDevice] = useState('ALL');
-  const [filterCity, setFilterCity] = useState('ALL');
-  const [cityList, setCityList] = useState([]);
+    <form id="activationForm">
+      <input type="hidden" id="card_id" name="card_id">
 
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
+      <div class="form-group">
+        <label for="no_merchant">No Merchant</label>
+        <input type="text" id="no_merchant" name="no_merchant" readonly>
+      </div>
 
-  // 1. Tangkap Parameter Query ID dari URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const idParam = params.get('id') || 'A000001';
-    const num = parseInt(idParam.replace(/[^0-9]/g, ''), 10) || 1;
-    setCardId(idParam);
-    setNoMerchant(num);
+      <div class="form-group">
+        <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
+        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
+      </div>
 
-    fetchCardData(idParam);
-    loadChartJS();
-  }, []);
+      <div class="form-group">
+        <label for="pin_baru">PIN Baru <small style="color: red; font-weight: normal;">(Opsional)</small></label>
+        <input type="text" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
+      </div>
 
-  // Inject Script Chart.js CDN Dinamis
-  const loadChartJS = () => {
-    if (!window.Chart) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  };
+      <div class="form-group">
+        <label for="nama_toko">LINK yang Akan Digunakan <small style="color: red;">*</small></label>
+        <input type="text" id="nama_toko" name="nama_toko" placeholder="https://smart-qr-code-iota.vercel.app/" required autocomplete="off">
+        <small id="tokoNote" class="info-note"></small>
+      </div>
 
-  // 2. Fetch Status Kartu dari Google Apps Script
-  const fetchCardData = async (id) => {
-    setMessage('Memuat data kartu...');
-    try {
-      const res = await fetch(`${GAS_URL}?card_id=${id}`);
-      const data = await res.json();
+      <div class="form-group">
+        <label for="no_hp">Email Google <small style="color: red;">*</small></label>
+        <input type="email" id="no_hp" name="no_hp" placeholder="merchant@gmail.com" required autocomplete="off">
+        <small class="info-note">Email untuk mendapatkan akses trafik</small>
+      </div>
 
-      if (data.status === 'success') {
-        setMessage('');
-        if (data.card_status === 'active') {
-          setStatus('active');
-          setNamaToko(data.nama_toko || '');
-          setEmailOwner(data.no_hp || '');
-          fetchMerchantStats(id);
+      <div class="btn-group">
+        <button type="button" id="btnActivate" class="btn-primary" onclick="submitForm('activate')">Aktivasi / Simpan</button>
+        <button type="button" id="btnDeactivate" class="btn-danger" style="display:none;" onclick="submitForm('deactivate')">Nonaktifkan</button>
+      </div>
+
+      <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
+        ⭐ Buka Halaman URL
+      </a>
+    </form>
+
+    <div id="message"></div>
+
+    <!-- UI ANALYTICS LOG SCAN (DESAIN BARU & FILTER) -->
+    <div id="merchantStats" class="analytics-section" style="display: none;">
+      <h3>📊 Traffic Analytics Log Scan</h3>
+      <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 12px;">Data Scan Khusus ID Kartu Anda</p>
+      
+      <!-- Ringkasan Statistik -->
+      <div class="stat-cards">
+        <div class="stat-box">
+          <div id="totalScanCount" class="stat-number">0</div>
+          <div class="stat-label">Total Scan</div>
+        </div>
+        <div class="stat-box">
+          <div id="topDeviceName" class="stat-number" style="font-size: 14px; color: #28a745;">-</div>
+          <div class="stat-label">Device Terbanyak</div>
+        </div>
+        <div class="stat-box">
+          <div id="topCityName" class="stat-number" style="font-size: 14px; color: #fd7e14;">-</div>
+          <div class="stat-label">Kota Terbanyak</div>
+        </div>
+      </div>
+
+      <!-- Filter Dropdown -->
+      <div class="filter-grid">
+        <select id="filterDevice" onchange="applyFilters()">
+          <option value="ALL">Semua Perangkat</option>
+          <option value="Android">Android</option>
+          <option value="iOS">iOS</option>
+          <option value="Desktop">Desktop</option>
+        </select>
+        <select id="filterCity" onchange="applyFilters()">
+          <option value="ALL">Semua Kota</option>
+        </select>
+      </div>
+
+      <!-- Canvas Pie/Donut Chart -->
+      <div class="chart-container">
+        <canvas id="deviceChart"></canvas>
+      </div>
+
+      <!-- Tabel Detail Log -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Kota</th>
+              <th>Device</th>
+            </tr>
+          </thead>
+          <tbody id="scanLogsTable">
+            <tr><td colspan="3" style="text-align:center;">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
+
+    let rawLogsData = [];
+    let chartInstance = null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const cardId = urlParams.get('id') || 'A000001';
+    const noMerchant = parseInt(cardId.replace(/[^0-9]/g, ''), 10) || 1;
+
+    document.getElementById('card_id').value = cardId;
+    document.getElementById('no_merchant').value = noMerchant;
+
+    async function loadCardData() {
+      const msgDiv = document.getElementById('message');
+      const badge = document.getElementById('statusBadge');
+      const btnActivate = document.getElementById('btnActivate');
+      const btnDeactivate = document.getElementById('btnDeactivate');
+      const btnReviewLink = document.getElementById('btnReviewLink');
+
+      msgDiv.style.color = '#555';
+      msgDiv.innerText = 'Memuat data kartu...';
+
+      try {
+        const res = await fetch(`${GAS_URL}?card_id=${cardId}`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          msgDiv.innerText = '';
+          if (data.card_status === 'active') {
+            badge.className = 'badge badge-active';
+            badge.innerText = 'TERDAFTAR / AKTIF';
+            
+            document.getElementById('nama_toko').value = data.nama_toko || '';
+            document.getElementById('nama_toko').readOnly = true;
+            document.getElementById('no_hp').value = data.no_hp || '';
+            document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
+            
+            btnActivate.style.display = 'none';
+            btnDeactivate.style.display = 'block';
+
+            if (data.nama_toko && data.nama_toko.startsWith('http')) {
+              btnReviewLink.href = data.nama_toko;
+              btnReviewLink.style.display = 'block';
+            }
+
+            loadMerchantStats(cardId);
+          } else {
+            badge.className = 'badge badge-inactive';
+            badge.innerText = 'BELUM AKTIF / KOSONG';
+            
+            document.getElementById('nama_toko').value = '';
+            document.getElementById('nama_toko').readOnly = false;
+            document.getElementById('no_hp').value = '';
+            btnActivate.style.display = 'block';
+            btnDeactivate.style.display = 'none';
+            btnReviewLink.style.display = 'none';
+            document.getElementById('merchantStats').style.display = 'none';
+          }
         } else {
-          setStatus('inactive');
-          setNamaToko('');
-          setEmailOwner('');
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = data.message;
         }
-      } else {
-        setMessage(data.message);
+      } catch (err) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Gagal memuat status kartu.';
       }
-    } catch (err) {
-      setMessage('Gagal memuat status kartu.');
     }
-  };
 
-  // 3. Fetch Log Traffic Scan
-  const fetchMerchantStats = async (id) => {
-    try {
-      const res = await fetch(`${GAS_URL}?card_id=${id}&action=get_stats`);
-      const data = await res.json();
-      if (data.status === 'success' && data.scans) {
-        setRawLogs(data.scans);
-        setFilteredLogs(data.scans);
+    async function loadMerchantStats(id) {
+      try {
+        const res = await fetch(`${GAS_URL}?card_id=${id}&action=get_stats`);
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.scans) {
+          rawLogsData = data.scans;
+          document.getElementById('merchantStats').style.display = 'block';
 
-        // Ekstrak daftar kota unik
-        const cities = [...new Set(data.scans.map((item) => item.city))].filter(Boolean);
-        setCityList(cities);
+          const cities = [...new Set(rawLogsData.map(item => item.city))].filter(Boolean);
+          const citySelect = document.getElementById('filterCity');
+          citySelect.innerHTML = '<option value="ALL">Semua Kota</option>';
+          cities.forEach(city => {
+            citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+          });
+
+          applyFilters();
+        }
+      } catch (err) {
+        console.error('Gagal memuat statistik:', err);
       }
-    } catch (err) {
-      console.error('Error fetching stats:', err);
     }
-  };
 
-  // 4. Filter Log Data Scan
-  useEffect(() => {
-    let result = rawLogs;
-    if (filterDevice !== 'ALL') {
-      result = result.filter((item) => item.device === filterDevice);
-    }
-    if (filterCity !== 'ALL') {
-      result = result.filter((item) => item.city === filterCity);
-    }
-    setFilteredLogs(result);
-  }, [filterDevice, filterCity, rawLogs]);
+    function applyFilters() {
+      const selectedDevice = document.getElementById('filterDevice').value;
+      const selectedCity = document.getElementById('filterCity').value;
 
-  // 5. Render Chart.js
-  useEffect(() => {
-    if (status === 'active' && window.Chart && chartRef.current) {
-      const deviceCounts = { Android: 0, iOS: 0, Desktop: 0 };
-      filteredLogs.forEach((log) => {
+      const filteredLogs = rawLogsData.filter(item => {
+        const matchDevice = selectedDevice === 'ALL' || item.device === selectedDevice;
+        const matchCity = selectedCity === 'ALL' || item.city === selectedCity;
+        return matchDevice && matchCity;
+      });
+
+      renderAnalytics(filteredLogs);
+    }
+
+    function renderAnalytics(logs) {
+      document.getElementById('totalScanCount').innerText = logs.length;
+
+      const deviceCounts = { 'Android': 0, 'iOS': 0, 'Desktop': 0 };
+      const cityCounts = {};
+
+      logs.forEach(log => {
         if (deviceCounts[log.device] !== undefined) {
           deviceCounts[log.device]++;
         }
+        if (log.city) {
+          cityCounts[log.city] = (cityCounts[log.city] || 0) + 1;
+        }
       });
 
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
+      const topDevice = Object.keys(deviceCounts).reduce((a, b) => deviceCounts[a] > deviceCounts[b] ? a : b, '-');
+      const topCity = Object.keys(cityCounts).reduce((a, b) => cityCounts[a] > cityCounts[b] ? a : b, '-');
+
+      document.getElementById('topDeviceName').innerText = logs.length > 0 ? topDevice : '-';
+      document.getElementById('topCityName').innerText = logs.length > 0 ? topCity : '-';
+
+      const tbody = document.getElementById('scanLogsTable');
+      tbody.innerHTML = '';
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Tidak ada data scan</td></tr>';
+      } else {
+        logs.forEach(log => {
+          const dateStr = log.timestamp ? log.timestamp.replace('T', ' ').substring(0, 16) : '-';
+          tbody.innerHTML += `<tr>
+            <td>${dateStr}</td>
+            <td>${log.city || '-'}</td>
+            <td><strong>${log.device || '-'}</strong></td>
+          </tr>`;
+        });
       }
 
-      const ctx = chartRef.current.getContext('2d');
-      chartInstance.current = new window.Chart(ctx, {
+      renderChart(deviceCounts);
+    }
+
+    function renderChart(deviceCounts) {
+      const ctx = document.getElementById('deviceChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      chartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: ['Android', 'iOS', 'Desktop'],
-          datasets: [
-            {
-              data: [deviceCounts.Android, deviceCounts.iOS, deviceCounts.Desktop],
-              backgroundColor: ['#28a745', '#007bff', '#6c757d'],
-            },
-          ],
+          datasets: [{
+            data: [deviceCounts['Android'], deviceCounts['iOS'], deviceCounts['Desktop']],
+            backgroundColor: ['#28a745', '#007bff', '#6c757d']
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } },
-        },
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
       });
     }
-  }, [filteredLogs, status]);
 
-  // Submit Handler Aktivasi / Deaktivasi
-  const handleSubmit = async (actionType) => {
-    if (!pin) {
-      setMessage('PIN saat ini wajib diisi!');
-      return;
-    }
-    if (actionType === 'activate' && (!namaToko || !emailOwner)) {
-      setMessage('URL Tujuan dan Email wajib diisi!');
-      return;
-    }
+    loadCardData();
 
-    setIsSubmitting(true);
-    setMessage('Memproses...');
+    async function submitForm(actionType) {
+      const pin = document.getElementById('pin').value.trim();
+      const pinBaru = document.getElementById('pin_baru').value.trim();
+      const namaTokoInput = document.getElementById('nama_toko').value.trim();
+      const emailInput = document.getElementById('no_hp').value.trim();
+      const msgDiv = document.getElementById('message');
+      const btnActivate = document.getElementById('btnActivate');
+      const btnDeactivate = document.getElementById('btnDeactivate');
 
-    const formData = new URLSearchParams();
-    formData.append('card_id', cardId);
-    formData.append('pin', pin);
-    formData.append('pin_baru', pinBaru);
-    formData.append('nama_toko', namaToko);
-    formData.append('no_hp', emailOwner);
-    formData.append('action', actionType);
-
-    try {
-      const res = await fetch(GAS_URL, { method: 'POST', body: formData });
-      const result = await res.json();
-
-      if (result.status === 'success') {
-        setMessage(result.message);
-        setPin('');
-        setPinBaru('');
-        setTimeout(() => {
-          fetchCardData(cardId);
-          setIsSubmitting(false);
-        }, 1000);
-      } else {
-        setMessage(result.message);
-        setIsSubmitting(false);
+      if (!pin) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'PIN saat ini wajib diisi!';
+        return;
       }
-    } catch (err) {
-      setMessage('Terjadi kesalahan sistem.');
-      setIsSubmitting(false);
+
+      if (actionType === 'activate' && (!namaTokoInput || !emailInput)) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'URL Tujuan dan Email wajib diisi!';
+        return;
+      }
+
+      btnActivate.disabled = true;
+      btnDeactivate.disabled = true;
+      msgDiv.style.color = '#007bff';
+      msgDiv.innerText = 'Memproses...';
+
+      const formData = new URLSearchParams();
+      formData.append('card_id', cardId);
+      formData.append('pin', pin);
+      formData.append('pin_baru', pinBaru);
+      formData.append('nama_toko', namaTokoInput);
+      formData.append('no_hp', emailInput);
+      formData.append('action', actionType);
+
+      try {
+        const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          msgDiv.style.color = 'green';
+          msgDiv.innerText = result.message;
+          document.getElementById('pin').value = '';
+          document.getElementById('pin_baru').value = '';
+          setTimeout(() => {
+            loadCardData();
+            btnActivate.disabled = false;
+            btnDeactivate.disabled = false;
+          }, 1000);
+        } else {
+          msgDiv.style.color = 'red';
+          msgDiv.innerText = result.message;
+          btnActivate.disabled = false;
+          btnDeactivate.disabled = false;
+        }
+      } catch (err) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'Terjadi kesalahan sistem.';
+        btnActivate.disabled = false;
+        btnDeactivate.disabled = false;
+      }
     }
-  };
-
-  // Kalkulasi Top Device & Top City
-  const getTopItem = (key) => {
-    if (!filteredLogs.length) return '-';
-    const counts = {};
-    filteredLogs.forEach((item) => {
-      counts[item[key]] = (counts[item[key]] || 0) + 1;
-    });
-    return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b), '-');
-  };
-
-  return (
-    <div style={{ backgroundColor: '#f4f6f9', minHeight: '100vh', padding: '20px', display: 'flex', justifyContent: 'center' }}>
-      <div style={{ background: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '100%', maxWidth: '550px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Form Aktivasi Kartu</h2>
-
-        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-          <span style={{
-            display: 'inline-block', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
-            backgroundColor: status === 'active' ? '#d4edda' : '#e2e3e5',
-            color: status === 'active' ? '#155724' : '#383d41'
-          }}>
-            {status === 'active' ? 'TERDAFTAR / AKTIF' : status === 'loading' ? 'MEMERIKSA STATUS...' : 'BELUM AKTIF / KOSONG'}
-          </span>
-        </div>
-
-        {/* Form Inputs */}
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>No Merchant</label>
-          <input type="text" value={noMerchant} readOnly style={{ width: '100%', padding: '10px', background: '#e9ecef', border: '1px solid #ccc', borderRadius: '6px' }} />
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>PIN Saat Ini *</label>
-          <input type="text" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Masukkan PIN" style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px' }} />
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>PIN Baru (Opsional)</label>
-          <input type="text" value={pinBaru} onChange={(e) => setPinBaru(e.target.value)} placeholder="Masukkan PIN baru" style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px' }} />
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>LINK yang Akan Digunakan *</label>
-          <input type="text" value={namaToko} onChange={(e) => setNamaToko(e.target.value)} readOnly={status === 'active'} placeholder="https://smart-qr-code-iota.vercel.app/" style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px', background: status === 'active' ? '#e9ecef' : 'white' }} />
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontWeight: 'bold', fontSize: '13px', marginBottom: '4px' }}>Email Google *</label>
-          <input type="email" value={emailOwner} onChange={(e) => setEmailOwner(e.target.value)} placeholder="merchant@gmail.com" style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '6px' }} />
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-          {status !== 'active' ? (
-            <button onClick={() => handleSubmit('activate')} disabled={isSubmitting} style={{ flex: 1, padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-              Aktivasi / Simpan
-            </button>
-          ) : (
-            <button onClick={() => handleSubmit('deactivate')} disabled={isSubmitting} style={{ flex: 1, padding: '12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-              Nonaktifkan
-            </button>
-          )}
-        </div>
-
-        {status === 'active' && namaToko.startsWith('http') && (
-          <a href={namaToko} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', marginTop: '12px', padding: '12px', background: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold' }}>
-            ⭐ Buka Halaman URL
-          </a>
-        )}
-
-        {message && <div style={{ marginTop: '12px', textAlign: 'center', fontWeight: 'bold', color: message.includes('berhasil') ? 'green' : 'red' }}>{message}</div>}
-
-        {/* SECTION ANALYTICS TRAFFIC LOG SCAN (VERSI BARU GRAFIK & FILTER) */}
-        {status === 'active' && (
-          <div style={{ marginTop: '25px', padding: '18px', background: '#fff', border: '1px solid #e0e0e0', borderRadius: '10px' }}>
-            <h3 style={{ textAlign: 'center', marginBottom: '4px' }}>📊 Traffic Analytics Log Scan</h3>
-            <p style={{ fontSize: '11px', color: '#666', textAlign: 'center', marginBottom: '15px' }}>Data Scan Khusus ID Kartu Anda</p>
-
-            {/* Summary Cards */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-              <div style={{ flex: 1, background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#007bff' }}>{filteredLogs.length}</div>
-                <div style={{ fontSize: '11px', color: '#6c757d' }}>Total Scan</div>
-              </div>
-              <div style={{ flex: 1, background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#28a745' }}>{getTopItem('device')}</div>
-                <div style={{ fontSize: '11px', color: '#6c757d' }}>Device Terbanyak</div>
-              </div>
-              <div style={{ flex: 1, background: '#f8f9fa', border: '1px solid #dee2e6', borderRadius: '8px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fd7e14' }}>{getTopItem('city')}</div>
-                <div style={{ fontSize: '11px', color: '#6c757d' }}>Kota Terbanyak</div>
-              </div>
-            </div>
-
-            {/* Filter Dropdowns */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-              <select value={filterDevice} onChange={(e) => setFilterDevice(e.target.value)} style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '6px' }}>
-                <option value="ALL">Semua Perangkat</option>
-                <option value="Android">Android</option>
-                <option value="iOS">iOS</option>
-                <option value="Desktop">Desktop</option>
-              </select>
-              <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '6px' }}>
-                <option value="ALL">Semua Kota</option>
-                {cityList.map((city, idx) => (
-                  <option key={idx} value={city}>{city}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Donut Chart Canvas */}
-            <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '15px' }}>
-              <canvas ref={chartRef}></canvas>
-            </div>
-
-            {/* Logs Table */}
-            <div style={{ maxHeight: '180px', overflowY: 'auto', fontSize: '12px', border: '1px solid #ddd', borderRadius: '6px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#f1f3f5', position: 'sticky', top: 0 }}>
-                    <th style={{ padding: '8px', borderBottom: '1px solid #eee' }}>Waktu</th>
-                    <th style={{ padding: '8px', borderBottom: '1px solid #eee' }}>Kota</th>
-                    <th style={{ padding: '8px', borderBottom: '1px solid #eee' }}>Device</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLogs.length === 0 ? (
-                    <tr><td colSpan="3" style={{ textAlign: 'center', padding: '10px' }}>Tidak ada data scan</td></tr>
-                  ) : (
-                    filteredLogs.map((log, index) => (
-                      <tr key={index}>
-                        <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{log.timestamp ? log.timestamp.replace('T', ' ').substring(0, 16) : '-'}</td>
-                        <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}>{log.city}</td>
-                        <td style={{ padding: '8px', borderBottom: '1px solid #eee' }}><strong>{log.device}</strong></td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+  </script>
+</body>
+</html>
