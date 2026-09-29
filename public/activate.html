@@ -3,32 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aktivasi Kartu Merchant</title>
+  <title>Aktivasi Kartu & Traffic Analytics</title>
+  <!-- Chart.js CDN untuk Grafik -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
-    body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-    .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 420px; position: relative; }
-    h2 { text-align: center; margin-bottom: 10px; color: #333; }
-    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+    body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 550px; }
+    h2, h3 { text-align: center; margin-bottom: 10px; color: #333; }
+    .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; }
     .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .badge-inactive { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
     .badge-container { text-align: center; }
     .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 6px; font-weight: bold; color: #555; font-size: 14px; }
-    input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    label { display: block; margin-bottom: 6px; font-weight: bold; color: #555; font-size: 13px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
     input[readonly] { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
-    .btn-group { display: flex; gap: 10px; margin-top: 20px; }
-    button, .btn-link { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; text-align: center; text-decoration: none; }
+    .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+    button, .btn-link { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; color: white; text-align: center; text-decoration: none; }
     button:disabled { background-color: #ccc !important; cursor: not-allowed; }
     .btn-primary { background-color: #007bff; }
     .btn-primary:hover:not(:disabled) { background-color: #0056b3; }
     .btn-danger { background-color: #dc3545; }
     .btn-danger:hover:not(:disabled) { background-color: #a71d2a; }
     .btn-success { background-color: #28a745; display: block; width: 100%; margin-top: 15px; }
-    .btn-success:hover { background-color: #218838; }
-    #message { margin-top: 15px; text-align: center; font-size: 14px; font-weight: bold; }
-    .info-note { font-size: 12px; color: #6c757d; margin-top: 4px; display: block; }
-    .pac-container { border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #ddd; z-index: 10000; }
+    #message { margin-top: 12px; text-align: center; font-size: 13px; font-weight: bold; }
+    .info-note { font-size: 11px; color: #6c757d; margin-top: 4px; display: block; }
+
+    /* STYLES DASHBOARD LOG SCAN */
+    .analytics-section { margin-top: 25px; padding: 18px; background: #ffffff; border-radius: 10px; border: 1px solid #e0e0e0; }
+    .stat-cards { display: flex; gap: 10px; margin-bottom: 15px; }
+    .stat-box { flex: 1; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-number { font-size: 20px; font-weight: bold; color: #007bff; }
+    .stat-label { font-size: 11px; color: #6c757d; }
+    .filter-grid { display: flex; gap: 8px; margin-bottom: 15px; }
+    .chart-container { position: relative; width: 100%; height: 220px; margin-bottom: 15px; }
+    .table-wrapper { max-height: 180px; overflow-y: auto; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 8px; border-bottom: 1px solid #eee; }
+    th { background: #f1f3f5; position: sticky; top: 0; }
   </style>
 </head>
 <body>
@@ -43,31 +56,29 @@
       <input type="hidden" id="card_id" name="card_id">
 
       <div class="form-group">
-        <label for="no_merchant">No merchant</label>
+        <label for="no_merchant">No Merchant</label>
         <input type="text" id="no_merchant" name="no_merchant" readonly>
       </div>
 
       <div class="form-group">
         <label for="pin">PIN Saat Ini <small style="color: red;">*</small></label>
-        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN saat ini" required autocomplete="off">
+        <input type="text" id="pin" name="pin" placeholder="Masukkan PIN" required autocomplete="off">
       </div>
 
       <div class="form-group">
         <label for="pin_baru">PIN Baru <small style="color: red; font-weight: normal;">(Opsional)</small></label>
-        <input type="text" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" required autocomplete="off">
+        <input type="text" id="pin_baru" name="pin_baru" placeholder="Masukkan PIN baru" autocomplete="off">
       </div>
 
       <div class="form-group">
-        <label for="nama_toko">LINK yang Akan Digunakan <small style="color: red;">*</small></label>
+        <label for="nama_toko">LINK Tujuan QR <small style="color: red;">*</small></label>
         <input type="text" id="nama_toko" name="nama_toko" placeholder="https://smartqrbikinkarya.com" required autocomplete="off">
         <small id="tokoNote" class="info-note"></small>
       </div>
 
-      <!-- PERUBAHAN TAMPILAN: INPUT EMAIL (WAJIB) METADATA TETAP NO_HP -->
       <div class="form-group">
-        <label for="no_hp">Email Google <small style="color: red;">*</small></label>
-        <input type="email" id="no_hp" name="no_hp" placeholder="Contoh: merchant@gmail.com" required autocomplete="off">
-        <small class="info-note">Email untuk mendapatkan akses trafik</small>
+        <label for="no_hp">Email Google Owner <small style="color: red;">*</small></label>
+        <input type="email" id="no_hp" name="no_hp" placeholder="merchant@gmail.com" required autocomplete="off">
       </div>
 
       <div class="btn-group">
@@ -75,42 +86,77 @@
         <button type="button" id="btnDeactivate" class="btn-danger" onclick="submitForm('deactivate')">Nonaktifkan</button>
       </div>
 
-      <!-- PANEL STATISTIK MERCHANT -->
-      <div id="merchantStats" style="display: none; margin-top: 20px; padding: 15px; background: #eef5ff; border-radius: 8px; border: 1px solid #b8daff;">
-        <h4 style="margin-bottom: 8px; color: #004085; text-align: center;">📊 Statistik QR Anda</h4>
-        <p style="font-size: 14px; text-align: center; margin-bottom: 10px;">Total Scan: <strong id="totalScanCount" style="font-size: 18px; color: #007bff;">0</strong> kali</p>
-        
-        <div style="max-height: 150px; overflow-y: auto; font-size: 12px; background: white; padding: 8px; border-radius: 6px; border: 1px solid #ccc;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead>
-              <tr style="border-bottom: 1px solid #ddd;">
-                <th style="padding: 4px;">Waktu</th>
-                <th style="padding: 4px;">Kota</th>
-                <th style="padding: 4px;">Perangkat</th>
-              </tr>
-            </thead>
-            <tbody id="scanLogsTable">
-              <tr><td colspan="3" style="text-align:center; padding: 5px;">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <a id="btnReviewLink" href="#" target="_blank" class="btn-link btn-success" style="display: none;">
-        ⭐ Buka Halaman URL 
+        ⭐ Buka Halaman URL
       </a>
     </form>
 
     <div id="message"></div>
+
+    <!-- UI ANALYTICS TRAFFIC LOG SCAN (KHUSUS ID KARTU INI) -->
+    <div id="merchantStats" class="analytics-section" style="display: none;">
+      <h3>📊 Traffic Analytics Log Scan</h3>
+      <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 12px;">Khusus data untuk ID Kartu Anda</p>
+      
+      <!-- Summary Cards -->
+      <div class="stat-cards">
+        <div class="stat-box">
+          <div id="totalScanCount" class="stat-number">0</div>
+          <div class="stat-label">Total Scan</div>
+        </div>
+        <div class="stat-box">
+          <div id="topDeviceName" class="stat-number" style="font-size: 15px; color: #28a745;">-</div>
+          <div class="stat-label">Perangkat Terbanyak</div>
+        </div>
+        <div class="stat-box">
+          <div id="topCityName" class="stat-number" style="font-size: 15px; color: #fd7e14;">-</div>
+          <div class="stat-label">Kota Terbanyak</div>
+        </div>
+      </div>
+
+      <!-- Control Filters -->
+      <div class="filter-grid">
+        <select id="filterDevice" onchange="applyFilters()">
+          <option value="ALL">Semua Perangkat</option>
+          <option value="Android">Android</option>
+          <option value="iOS">iOS</option>
+          <option value="Desktop">Desktop</option>
+        </select>
+        <select id="filterCity" onchange="applyFilters()">
+          <option value="ALL">Semua Kota</option>
+        </select>
+      </div>
+
+      <!-- Chart Canvas -->
+      <div class="chart-container">
+        <canvas id="deviceChart"></canvas>
+      </div>
+
+      <!-- Log Scan Table -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Kota</th>
+              <th>Negara</th>
+              <th>Device</th>
+            </tr>
+          </thead>
+          <tbody id="scanLogsTable">
+            <tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
-    const GOOGLE_MAPS_API_KEY = 'AIzaSyDpiwfF970bbs07VzP8rHxuTaNDVmYEm3c';
 
-    let autocomplete;
-    let selectedGmapsUrl = '';
-    let currentCardStatus = 'inactive';
+    let rawLogsData = [];
+    let chartInstance = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const cardId = urlParams.get('id') || 'A000001';
@@ -118,31 +164,6 @@
 
     document.getElementById('card_id').value = cardId;
     document.getElementById('no_merchant').value = noMerchant;
-
-    (function loadGoogleMapsAPI() {
-      if (GOOGLE_MAPS_API_KEY) {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initAutocomplete`;
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
-    })();
-
-    window.initAutocomplete = function() {
-      const input = document.getElementById('nama_toko');
-      autocomplete = new google.maps.places.Autocomplete(input, { types: ['establishment', 'geocode'] });
-
-      input.addEventListener('input', () => { selectedGmapsUrl = ''; });
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.place_id) {
-          selectedGmapsUrl = `https://search.google.com/local/writereview?placeid=${place.place_id}`;
-        } else if (place.url) {
-          selectedGmapsUrl = place.url;
-        }
-      });
-    };
 
     async function loadCardData() {
       const msgDiv = document.getElementById('message');
@@ -158,16 +179,14 @@
 
         if (data.status === 'success') {
           msgDiv.innerText = '';
-          currentCardStatus = data.card_status;
-
-          if (currentCardStatus === 'active') {
+          if (data.card_status === 'active') {
             badge.className = 'badge badge-active';
             badge.innerText = 'TERDAFTAR / AKTIF';
             
             document.getElementById('nama_toko').value = data.nama_toko;
             document.getElementById('nama_toko').readOnly = true;
-            document.getElementById('no_hp').value = data.no_hp; // Mengisi data email yang tersimpan
-            document.getElementById('tokoNote').innerText = 'Kartu sudah terdaftar. Masukkan PIN & klik Nonaktifkan jika ingin mengganti merchant.';
+            document.getElementById('no_hp').value = data.no_hp;
+            document.getElementById('tokoNote').innerText = 'Kartu aktif. Masukkan PIN & klik Nonaktifkan untuk mengubah link.';
             
             document.getElementById('btnActivate').style.display = 'none';
             document.getElementById('btnDeactivate').style.display = 'block';
@@ -175,8 +194,6 @@
             if (data.nama_toko && data.nama_toko.startsWith('http')) {
               btnReviewLink.href = data.nama_toko;
               btnReviewLink.style.display = 'block';
-            } else {
-              btnReviewLink.style.display = 'none';
             }
 
             loadMerchantStats(cardId);
@@ -187,8 +204,6 @@
             document.getElementById('nama_toko').value = '';
             document.getElementById('nama_toko').readOnly = false;
             document.getElementById('no_hp').value = '';
-            document.getElementById('tokoNote').innerText = '';
-
             document.getElementById('btnActivate').style.display = 'block';
             document.getElementById('btnDeactivate').style.display = 'none';
             btnReviewLink.style.display = 'none';
@@ -208,30 +223,106 @@
       try {
         const res = await fetch(`${GAS_URL}?card_id=${id}&action=get_stats`);
         const data = await res.json();
-        if (data.status === 'success') {
+        
+        if (data.status === 'success' && data.scans) {
+          rawLogsData = data.scans;
           document.getElementById('merchantStats').style.display = 'block';
-          document.getElementById('totalScanCount').innerText = data.total_scans;
 
-          const tbody = document.getElementById('scanLogsTable');
-          tbody.innerHTML = '';
+          // Set Pilihan Filter Kota
+          const cities = [...new Set(rawLogsData.map(item => item.city))].filter(Boolean);
+          const citySelect = document.getElementById('filterCity');
+          citySelect.innerHTML = '<option value="ALL">Semua Kota</option>';
+          cities.forEach(city => {
+            citySelect.innerHTML += `<option value="${city}">${city}</option>`;
+          });
 
-          if (data.recent_scans.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 5px;">Belum ada scan</td></tr>';
-          } else {
-            data.recent_scans.forEach(log => {
-              const timeDisplay = log.timestamp ? (log.timestamp.includes(',') ? log.timestamp.split(',')[1] : log.timestamp) : '-';
-              const row = `<tr>
-                <td style="padding:4px;">${timeDisplay}</td>
-                <td style="padding:4px;">${log.city}</td>
-                <td style="padding:4px;">${log.device}</td>
-              </tr>`;
-              tbody.innerHTML += row;
-            });
-          }
+          applyFilters();
         }
       } catch (err) {
         console.error('Gagal memuat statistik:', err);
       }
+    }
+
+    function applyFilters() {
+      const selectedDevice = document.getElementById('filterDevice').value;
+      const selectedCity = document.getElementById('filterCity').value;
+
+      const filteredLogs = rawLogsData.filter(item => {
+        const matchDevice = selectedDevice === 'ALL' || item.device === selectedDevice;
+        const matchCity = selectedCity === 'ALL' || item.city === selectedCity;
+        return matchDevice && matchCity;
+      });
+
+      renderAnalytics(filteredLogs);
+    }
+
+    function renderAnalytics(logs) {
+      // 1. Total Scan
+      document.getElementById('totalScanCount').innerText = logs.length;
+
+      // 2. Hitung Perangkat & Kota Terbanyak
+      const deviceCounts = { 'Android': 0, 'iOS': 0, 'Desktop': 0 };
+      const cityCounts = {};
+
+      logs.forEach(log => {
+        if (deviceCounts[log.device] !== undefined) {
+          deviceCounts[log.device]++;
+        }
+        cityCounts[log.city] = (cityCounts[log.city] || 0) + 1;
+      });
+
+      const topDevice = Object.keys(deviceCounts).reduce((a, b) => deviceCounts[a] > deviceCounts[b] ? a : b, '-');
+      const topCity = Object.keys(cityCounts).reduce((a, b) => cityCounts[a] > cityCounts[b] ? a : b, '-');
+
+      document.getElementById('topDeviceName').innerText = logs.length > 0 ? topDevice : '-';
+      document.getElementById('topCityName').innerText = logs.length > 0 ? topCity : '-';
+
+      // 3. Render Tabel Log Scan
+      const tbody = document.getElementById('scanLogsTable');
+      tbody.innerHTML = '';
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Tidak ada data scan</td></tr>';
+      } else {
+        logs.forEach(log => {
+          const dateStr = log.timestamp ? log.timestamp.replace('T', ' ').substring(0, 16) : '-';
+          tbody.innerHTML += `<tr>
+            <td>${dateStr}</td>
+            <td>${log.city}</td>
+            <td>${log.country}</td>
+            <td><strong>${log.device}</strong></td>
+          </tr>`;
+        });
+      }
+
+      // 4. Render Grafik (Chart.js)
+      renderChart(deviceCounts);
+    }
+
+    function renderChart(deviceCounts) {
+      const ctx = document.getElementById('deviceChart').getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy(); // Hapus grafik lama sebelum menggambar grafik baru
+      }
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Android', 'iOS', 'Desktop'],
+          datasets: [{
+            data: [deviceCounts['Android'], deviceCounts['iOS'], deviceCounts['Desktop']],
+            backgroundColor: ['#28a745', '#007bff', '#6c757d']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
     }
 
     loadCardData();
@@ -240,7 +331,7 @@
       const pin = document.getElementById('pin').value.trim();
       const pinBaru = document.getElementById('pin_baru').value.trim();
       const namaTokoInput = document.getElementById('nama_toko').value.trim();
-      const emailInput = document.getElementById('no_hp').value.trim(); // Email tersimpan di variabel no_hp
+      const emailInput = document.getElementById('no_hp').value.trim();
       const msgDiv = document.getElementById('message');
       const btnActivate = document.getElementById('btnActivate');
       const btnDeactivate = document.getElementById('btnDeactivate');
@@ -251,40 +342,27 @@
         return;
       }
 
-      if (actionType === 'activate') {
-        if (!namaTokoInput) {
-          msgDiv.style.color = 'red';
-          msgDiv.innerText = 'Nama Toko wajib diisi!';
-          return;
-        }
-        if (!emailInput) {
-          msgDiv.style.color = 'red';
-          msgDiv.innerText = 'Email Google wajib diisi!';
-          return;
-        }
+      if (actionType === 'activate' && (!namaTokoInput || !emailInput)) {
+        msgDiv.style.color = 'red';
+        msgDiv.innerText = 'URL Tujuan dan Email wajib diisi!';
+        return;
       }
 
       btnActivate.disabled = true;
       btnDeactivate.disabled = true;
       msgDiv.style.color = '#007bff';
-      msgDiv.innerText = 'Memproses ke sistem...';
-
-      const targetGmapsLink = selectedGmapsUrl || namaTokoInput;
+      msgDiv.innerText = 'Memproses...';
 
       const formData = new URLSearchParams();
       formData.append('card_id', cardId);
       formData.append('pin', pin);
       formData.append('pin_baru', pinBaru);
-      formData.append('nama_toko', targetGmapsLink);
-      formData.append('no_hp', emailInput); // Kirim nilai email tetap menggunakan key 'no_hp'
+      formData.append('nama_toko', namaTokoInput);
+      formData.append('no_hp', emailInput);
       formData.append('action', actionType);
 
       try {
-        const response = await fetch(GAS_URL, {
-          method: 'POST',
-          body: formData
-        });
-
+        const response = await fetch(GAS_URL, { method: 'POST', body: formData });
         const result = await response.json();
 
         if (result.status === 'success') {
@@ -292,7 +370,6 @@
           msgDiv.innerText = result.message;
           document.getElementById('pin').value = '';
           document.getElementById('pin_baru').value = '';
-          
           setTimeout(() => {
             loadCardData();
             btnActivate.disabled = false;
@@ -305,7 +382,6 @@
           btnDeactivate.disabled = false;
         }
       } catch (err) {
-        console.error(err);
         msgDiv.style.color = 'red';
         msgDiv.innerText = 'Terjadi kesalahan sistem.';
         btnActivate.disabled = false;
