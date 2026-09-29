@@ -9,7 +9,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
     body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
-    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 550px; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
     h2, h3 { text-align: center; margin-bottom: 10px; color: #333; }
     .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; text-align: center; margin-bottom: 15px; }
     .badge-active { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -37,7 +37,17 @@
     .stat-number { font-size: 18px; font-weight: bold; color: #007bff; }
     .stat-label { font-size: 11px; color: #6c757d; margin-top: 3px; }
     .filter-grid { display: flex; gap: 8px; margin-bottom: 15px; }
-    .chart-container { position: relative; width: 100%; height: 200px; margin-bottom: 15px; }
+
+    /* GRID UNTUK 2 DONUT CHART */
+    .charts-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 15px; }
+    .chart-box { flex: 1; min-width: 250px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; text-align: center; }
+    .chart-box h4 { font-size: 13px; margin-bottom: 8px; color: #495057; }
+    .chart-container { position: relative; width: 100%; height: 170px; margin-bottom: 8px; }
+    
+    /* SUMMARY BADGES / PILLS */
+    .summary-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; font-size: 11px; margin-top: 6px; }
+    .pill { background: #ffffff; border: 1px solid #ddd; border-radius: 12px; padding: 3px 8px; font-weight: bold; color: #333; }
+
     .table-wrapper { max-height: 180px; overflow-y: auto; font-size: 12px; border: 1px solid #ddd; border-radius: 6px; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 8px; border-bottom: 1px solid #eee; }
@@ -94,12 +104,12 @@
 
     <div id="message"></div>
 
-    <!-- UI ANALYTICS LOG SCAN (DESAIN BARU & FILTER) -->
+    <!-- SECTION ANALYTICS TRAFFIC LOG SCAN -->
     <div id="merchantStats" class="analytics-section" style="display: none;">
       <h3>📊 Traffic Analytics Log Scan</h3>
       <p style="font-size: 11px; color: #666; text-align: center; margin-bottom: 12px;">Data Scan Khusus ID Kartu Anda</p>
       
-      <!-- Ringkasan Statistik -->
+      <!-- Summary Box -->
       <div class="stat-cards">
         <div class="stat-box">
           <div id="totalScanCount" class="stat-number">0</div>
@@ -128,9 +138,25 @@
         </select>
       </div>
 
-      <!-- Canvas Pie/Donut Chart -->
-      <div class="chart-container">
-        <canvas id="deviceChart"></canvas>
+      <!-- GRID DUA DONUT CHART (DEVICE & KOTA) -->
+      <div class="charts-grid">
+        <!-- Donut 1: Perangkat -->
+        <div class="chart-box">
+          <h4>📱 Distribusi Perangkat</h4>
+          <div class="chart-container">
+            <canvas id="deviceChart"></canvas>
+          </div>
+          <div id="deviceSummaryPills" class="summary-pills"></div>
+        </div>
+
+        <!-- Donut 2: Kota (Top 10) -->
+        <div class="chart-box">
+          <h4>🏙️ Top 10 Kota Terbanyak</h4>
+          <div class="chart-container">
+            <canvas id="cityChart"></canvas>
+          </div>
+          <div id="citySummaryPills" class="summary-pills"></div>
+        </div>
       </div>
 
       <!-- Tabel Detail Log -->
@@ -156,7 +182,8 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
 
     let rawLogsData = [];
-    let chartInstance = null;
+    let deviceChartInstance = null;
+    let cityChartInstance = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const cardId = urlParams.get('id') || 'A000001';
@@ -260,6 +287,7 @@
     function renderAnalytics(logs) {
       document.getElementById('totalScanCount').innerText = logs.length;
 
+      // 1. Hitung Hitungan Device
       const deviceCounts = { 'Android': 0, 'iOS': 0, 'Desktop': 0 };
       const cityCounts = {};
 
@@ -278,6 +306,14 @@
       document.getElementById('topDeviceName').innerText = logs.length > 0 ? topDevice : '-';
       document.getElementById('topCityName').innerText = logs.length > 0 ? topCity : '-';
 
+      // 2. Olah Top 10 Kota
+      const sortedCities = Object.keys(cityCounts)
+        .map(c => ({ name: c, count: cityCounts[c] }))
+        .sort((a, b) => b.count - a.count);
+
+      const top10Cities = sortedCities.slice(0, 10);
+
+      // 3. Render Tabel Log
       const tbody = document.getElementById('scanLogsTable');
       tbody.innerHTML = '';
 
@@ -294,17 +330,44 @@
         });
       }
 
-      renderChart(deviceCounts);
+      // 4. Update Summary Pills (Angka Jumlah)
+      renderSummaryPills(deviceCounts, top10Cities);
+
+      // 5. Render 2 Donut Chart
+      renderDeviceChart(deviceCounts);
+      renderCityChart(top10Cities);
     }
 
-    function renderChart(deviceCounts) {
+    function renderSummaryPills(deviceCounts, top10Cities) {
+      // Pills Device
+      const devContainer = document.getElementById('deviceSummaryPills');
+      devContainer.innerHTML = `
+        <span class="pill" style="border-left: 4px solid #28a745;">Android: ${deviceCounts['Android']}</span>
+        <span class="pill" style="border-left: 4px solid #007bff;">iOS: ${deviceCounts['iOS']}</span>
+        <span class="pill" style="border-left: 4px solid #6c757d;">Desktop: ${deviceCounts['Desktop']}</span>
+      `;
+
+      // Pills Kota
+      const cityContainer = document.getElementById('citySummaryPills');
+      const cityColors = ['#007bff', '#28a745', '#fd7e14', '#e83e8c', '#6f42c1', '#17a2b8', '#ffc107', '#20c997', '#6c757d', '#343a40'];
+      
+      if (top10Cities.length === 0) {
+        cityContainer.innerHTML = '<span class="pill">Belum ada data</span>';
+      } else {
+        cityContainer.innerHTML = top10Cities.map((c, i) => 
+          `<span class="pill" style="border-left: 4px solid ${cityColors[i % cityColors.length]}">${c.name}: ${c.count}</span>`
+        ).join('');
+      }
+    }
+
+    function renderDeviceChart(deviceCounts) {
       const ctx = document.getElementById('deviceChart').getContext('2d');
 
-      if (chartInstance) {
-        chartInstance.destroy();
+      if (deviceChartInstance) {
+        deviceChartInstance.destroy();
       }
 
-      chartInstance = new Chart(ctx, {
+      deviceChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: ['Android', 'iOS', 'Desktop'],
@@ -317,7 +380,35 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom' }
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderCityChart(top10Cities) {
+      const ctx = document.getElementById('cityChart').getContext('2d');
+
+      if (cityChartInstance) {
+        cityChartInstance.destroy();
+      }
+
+      const cityColors = ['#007bff', '#28a745', '#fd7e14', '#e83e8c', '#6f42c1', '#17a2b8', '#ffc107', '#20c997', '#6c757d', '#343a40'];
+
+      cityChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: top10Cities.map(c => c.name),
+          datasets: [{
+            data: top10Cities.map(c => c.count),
+            backgroundColor: cityColors.slice(0, top10Cities.length)
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
           }
         }
       });

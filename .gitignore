@@ -4,3 +4,4 @@ node_modules
 qr_codes
 cards.db
 cards_export.csv
+.env*
