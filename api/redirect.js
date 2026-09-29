@@ -2,7 +2,7 @@
 const urlParams = new URLSearchParams(window.location.search);
 const cardId = urlParams.get('id') || 'A000001';
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxdUclcFRqNlvfYxQ8LcCoDFnz0nZYBbU8DJDAtBLfdz-BgnYV1n6PxZsWxi8Yaxujb/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyyaAUtZ81subvbUdA76MAtivQQrSBEXk26iPEtnk7dXVFfpV_OwyPzpWCHjYR60eC/exec';
 
 /**
  * Fungsi pendeteksi jenis perangkat secara spesifik:
